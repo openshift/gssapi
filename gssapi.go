@@ -21,16 +21,26 @@ import (
 
 // Encapsulates both the GSSAPI and the library dlopen()'d for it.
 type GssapiLib struct {
-	handle unsafe.Pointer
-	populate sync.Once
+	handle      unsafe.Pointer
+	populate    sync.Once
 	populateErr error
 
 	// fp_ == function pointer, resolved at load time
 	fp_gss_release_buffer unsafe.Pointer
+	// name.go
+	fp_gss_canonicalize_name      unsafe.Pointer
+	fp_gss_compare_name           unsafe.Pointer
+	fp_gss_display_name           unsafe.Pointer
+	fp_gss_duplicate_name         unsafe.Pointer
+	fp_gss_export_name            unsafe.Pointer
+	fp_gss_import_name            unsafe.Pointer
+	fp_gss_inquire_mechs_for_name unsafe.Pointer
+	fp_gss_inquire_names_for_mech unsafe.Pointer
+	fp_gss_release_name           unsafe.Pointer
 }
 
 type GssBuffer struct {
-	lib *GssapiLib
+	lib    *GssapiLib
 	buffer C.gss_buffer_t
 }
 

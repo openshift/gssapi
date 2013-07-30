@@ -51,6 +51,9 @@ func (lib *GssapiLib) Populate() error {
 		if lib.fp_gss_release_buffer, ok = lib.symbolResolveOne("gss_release_buffer"); !ok {
 			return
 		}
+		if !lib.populateNameFunctions() {
+			return
+		}
 	})
 	if lib.populateErr != nil {
 		return lib.populateErr
