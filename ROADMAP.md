@@ -37,5 +37,10 @@ Code relating to name manipulation, per [RFC2744][] table 2-4, is in [name.go](n
 
 Handling of routines classified as miscellaneous, per [RFC2744][] table 2-5, is in [misc.go](misc.go).
 
+Where the specification requires that certain names exist in the `.h` files,
+mapping to symbols that shall be exported with constant values, these are
+provided in [staticvars.go](staticvars.go).  For instance, `GSS_C_NT_USER_NAME`
+is in there, in a Go form, with a `.C_gss_OID_desc()` method.
+
 [RFC2744]: http://www.ietf.org/rfc/rfc2744.txt
 [RFC5587]: http://www.ietf.org/rfc/rfc5587.txt
