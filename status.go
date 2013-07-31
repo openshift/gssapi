@@ -9,6 +9,11 @@ package gssapi
 */
 import "C"
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Constant values are specified for C-language bindings in RFC 2744.
 /*
 """
@@ -43,6 +48,11 @@ type MinorStatus uint32
 type Status struct {
 	Major MajorStatus
 	Minor MinorStatus
+}
+
+type StatusError struct {
+	lib    *GssapiLib
+	status Status
 }
 
 const (
@@ -125,4 +135,54 @@ func NewStatus(major, minor C.OM_uint32) Status {
 		Major: MajorStatus(major),
 		Minor: MinorStatus(minor),
 	}
+}
+
+func (lib *GssapiLib) CheckError(maybe Status) error {
+	if !maybe.Major.IsError() {
+		return nil
+	}
+	return &StatusError{lib: lib, status: maybe}
+}
+
+func (se *StatusError) Error() string {
+	messages := make([]string, 0, 6)
+	additional := make([]Status, 0, 2)
+	buffer := GssBuffer{lib: se.lib}
+	first := true
+	context := C.OM_uint32(0)
+
+	var inquiry C.OM_uint32
+	var code_type int
+	if se.status.Major.RoutineError() == GSS_S_FAILURE {
+		inquiry = C.OM_uint32(se.status.Minor)
+		code_type = GSS_C_MECH_CODE
+	} else {
+		inquiry = C.OM_uint32(se.status.Major)
+		code_type = GSS_C_GSS_CODE
+	}
+
+	for first || context != C.OM_uint32(0) {
+		first = false
+		var (
+			render_min C.OM_uint32
+		)
+		render_maj := se.lib.gss_display_status(&render_min,
+			inquiry,
+			code_type,
+			GSS_C_NO_OID, // store a mech_type at the lib level?  Or context?
+			&context,
+			buffer.buffer,
+		)
+		resultStatus := NewStatus(render_maj, render_min)
+		if resultStatus.Major.IsError() {
+			additional = append(additional, resultStatus)
+		}
+		messages = append(messages, buffer.String())
+		buffer.Release()
+	}
+	if len(additional) > 0 {
+		messages = append(messages, fmt.Sprintf("additionally, %d conversions failed", len(additional)))
+	}
+	messages = append(messages, "")
+	return strings.Join(messages, "\n")
 }

@@ -27,6 +27,7 @@ type GssapiLib struct {
 
 	// fp_ == function pointer, resolved at load time
 	fp_gss_release_buffer unsafe.Pointer
+	fp_gss_display_status unsafe.Pointer
 	// name.go
 	fp_gss_canonicalize_name      unsafe.Pointer
 	fp_gss_compare_name           unsafe.Pointer
@@ -52,4 +53,8 @@ func (buf GssBuffer) Release() Status {
 	var min C.OM_uint32
 	maj := buf.lib.gss_release_buffer(&min, buf.buffer)
 	return NewStatus(maj, min)
+}
+
+func (buf GssBuffer) String() string {
+	return C.GoStringN((*C.char)(buf.buffer.value), C.int(buf.buffer.length))
 }

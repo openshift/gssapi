@@ -179,3 +179,10 @@ func (lib *GssapiLib) populateNameFunctions() bool {
 //  * decide on the encapsulating data structures
 //  * write the gss_* low-level functions
 //  * write the exported functions
+
+type NameImported struct {
+	lib *GssapiLib
+	oid C.gss_OID
+}
+
+//func NameImport(

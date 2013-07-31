@@ -9,6 +9,15 @@
 
 package gssapi
 
+/*
+#include <gssapi/gssapi.h>
+*/
+import "C"
+
+import (
+	"unsafe"
+)
+
 const (
 	// Flag bits for context-level services
 	GSS_C_DELEG_FLAG      uint32 = 1
@@ -33,8 +42,8 @@ const (
 
 const (
 	// Status code types for gss_display_status
-	GSS_C_GSS_CODE  uint32 = 1
-	GSS_C_MECH_CODE        = 2
+	GSS_C_GSS_CODE  int = 1
+	GSS_C_MECH_CODE     = 2
 )
 
 type ChannelBindingAddressFamily uint32
@@ -87,17 +96,14 @@ const (
 	GSS_C_INDEFINITE uint32 = 0xffffffff
 )
 
-/*
- * Various Null values
-#define GSS_C_NO_NAME ((gss_name_t) 0)
-#define GSS_C_NO_BUFFER ((gss_buffer_t) 0)
-#define GSS_C_NO_OID ((gss_OID) 0)
-#define GSS_C_NO_OID_SET ((gss_OID_set) 0)
-#define GSS_C_NO_CONTEXT ((gss_ctx_id_t) 0)
-#define GSS_C_NO_CREDENTIAL ((gss_cred_id_t) 0)
-#define GSS_C_NO_CHANNEL_BINDINGS ((gss_channel_bindings_t) 0)
-#define GSS_C_EMPTY_BUFFER {0, NULL}
-
-#define GSS_C_NULL_OID GSS_C_NO_OID
-#define GSS_C_NULL_OID_SET GSS_C_NO_OID_SET
-*/
+var (
+	GSS_C_NO_NAME             = (C.gss_name_t)(unsafe.Pointer(nil))
+	GSS_C_NO_BUFFER           = (C.gss_buffer_t)(unsafe.Pointer(nil))
+	GSS_C_NO_OID              = (C.gss_OID)(unsafe.Pointer(nil))
+	GSS_C_NO_OID_SET          = (C.gss_OID_set)(unsafe.Pointer(nil))
+	GSS_C_NO_CONTEXT          = (C.gss_ctx_id_t)(unsafe.Pointer(nil))
+	GSS_C_NO_CREDENTIAL       = (C.gss_cred_id_t)(unsafe.Pointer(nil))
+	GSS_C_NO_CHANNEL_BINDINGS = (C.gss_channel_bindings_t)(unsafe.Pointer(nil))
+	GSS_C_NULL_OID            = GSS_C_NO_OID
+	GSS_C_NULL_OID_SET        = GSS_C_NO_OID_SET
+)
