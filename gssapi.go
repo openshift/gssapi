@@ -49,6 +49,9 @@ func (buf GssBuffer) Bytes() []byte {
 	return C.GoBytes(buf.buffer.value, C.int(buf.buffer.length))
 }
 
+// C.gss_buffer_t (and thus our GssBuffer) can come from us or from the GSSAPI
+// library; if the latter, and *ONLY* if the latter, then .Release() should be
+// called upon it.
 func (buf GssBuffer) Release() Status {
 	var min C.OM_uint32
 	maj := buf.lib.gss_release_buffer(&min, buf.buffer)
@@ -57,4 +60,17 @@ func (buf GssBuffer) Release() Status {
 
 func (buf GssBuffer) String() string {
 	return C.GoStringN((*C.char)(buf.buffer.value), C.int(buf.buffer.length))
+}
+
+func (lib *GssapiLib) BufferString(content string) GssBuffer {
+	return lib.BufferBytes([]byte(content))
+}
+
+func (lib *GssapiLib) BufferBytes(content []byte) GssBuffer {
+	bufDesc := C.struct_gss_buffer_desc_struct{
+		length: C.size_t(len(content)),
+		value: (unsafe.Pointer)(&content[0]),
+	}
+	buf := (C.gss_buffer_t)(&bufDesc)
+	return GssBuffer{lib: lib, buffer: buf}
 }

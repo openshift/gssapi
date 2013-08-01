@@ -50,6 +50,9 @@ type Status struct {
 	Minor MinorStatus
 }
 
+// Just a Status with a lib binding, so that we can convert the results of an
+// operation to a string for diagnosis; designed to satisfy the error
+// interface, so will often be a nil (thus passed around as *StatusError).
 type StatusError struct {
 	lib    *GssapiLib
 	status Status
@@ -110,6 +113,8 @@ func (st MajorStatus) IsError() bool {
 	return st&(maskCALLING|maskROUTINE) != 0
 }
 
+func (st Status) IsError() bool { return st.Major.IsError() }
+
 func (st MajorStatus) ContinueNeeded() bool {
 	return st&field_GSS_S_CONTINUE_NEEDED != 0
 }
@@ -130,6 +135,8 @@ func (st MajorStatus) GapToken() bool {
 	return st&field_GSS_S_GAP_TOKEN != 0
 }
 
+// This makes a literal wrapper around a GSSAPI major/minor status; these are
+// non-nil even when the world is happy.
 func NewStatus(major, minor C.OM_uint32) Status {
 	return Status{
 		Major: MajorStatus(major),
@@ -137,11 +144,18 @@ func NewStatus(major, minor C.OM_uint32) Status {
 	}
 }
 
+// This converts a Status into either nil or something satisfying the error
+// interface.
 func (lib *GssapiLib) CheckError(maybe Status) error {
 	if !maybe.Major.IsError() {
 		return nil
 	}
 	return &StatusError{lib: lib, status: maybe}
+}
+
+// Simple accessor, given a major/minor status pair, make either nil or something satisfying the error interface.
+func (lib *GssapiLib) MakeError(major, minor C.OM_uint32) error {
+	return lib.CheckError(NewStatus(major, minor))
 }
 
 func (se *StatusError) Error() string {
