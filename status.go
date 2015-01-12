@@ -1,4 +1,4 @@
-// Copyright 2013 Apcera Inc. All rights reserved.
+// Copyright 2013-2015 Apcera Inc. All rights reserved.
 
 // GSS status and errors
 
@@ -6,6 +6,31 @@ package gssapi
 
 /*
 #include <gssapi/gssapi.h>
+
+OM_uint32
+wrap_gss_display_status(void *fp,
+	OM_uint32 *minor_status,
+	OM_uint32 status_value,
+	int status_type,
+	const gss_OID mech_type,
+	OM_uint32 *message_context,
+	gss_buffer_t status_string)
+{
+	return ((OM_uint32(*)(
+		OM_uint32 *,
+		OM_uint32,
+		int,
+		const gss_OID,
+		OM_uint32 *,
+		gss_buffer_t)
+		)fp)(minor_status,
+			status_value,
+			status_type,
+			mech_type,
+			message_context,
+			status_string);
+}
+
 */
 import "C"
 
@@ -37,26 +62,6 @@ const (
 	maskROUTINE  = 0x00FF0000
 	maskSUPPINFO = 0x0000FFFF
 )
-
-// These are GSSAPI-defined:
-type MajorStatus uint32
-
-// These are mechanism-specific:
-type MinorStatus uint32
-
-// If Major is GSS_S_FAILURE then information will be in Minor
-type Status struct {
-	Major MajorStatus
-	Minor MinorStatus
-}
-
-// Just a Status with a lib binding, so that we can convert the results of an
-// operation to a string for diagnosis; designed to satisfy the error
-// interface, so will often be a nil (thus passed around as *StatusError).
-type StatusError struct {
-	lib    *GssapiLib
-	status Status
-}
 
 const (
 	GSS_S_COMPLETE MajorStatus = 0
@@ -92,6 +97,9 @@ const (
 	field_GSS_S_GAP_TOKEN       = 1 << 4
 )
 
+// These are GSSAPI-defined:
+type MajorStatus uint32
+
 // Equivalent to C GSS_CALLING_ERROR() macro
 func (st MajorStatus) CallingError() MajorStatus {
 	return st & maskCALLING
@@ -113,8 +121,6 @@ func (st MajorStatus) IsError() bool {
 	return st&(maskCALLING|maskROUTINE) != 0
 }
 
-func (st Status) IsError() bool { return st.Major.IsError() }
-
 func (st MajorStatus) ContinueNeeded() bool {
 	return st&field_GSS_S_CONTINUE_NEEDED != 0
 }
@@ -135,67 +141,79 @@ func (st MajorStatus) GapToken() bool {
 	return st&field_GSS_S_GAP_TOKEN != 0
 }
 
-// This makes a literal wrapper around a GSSAPI major/minor status; these are
-// non-nil even when the world is happy.
-func NewStatus(major, minor C.OM_uint32) Status {
-	return Status{
+// Error is designed to serve both as an error, and as a general gssapi status
+// container. If Major is GSS_S_FAILURE then information will be in Minor.
+// The GoError method will return a nil if it doesn't represent a real error.
+type Error struct {
+	// gssapi lib binding, so that we can convert the results of an
+	// operation to a string for diagnosis
+	lib *Lib
+
+	// Specified by gssapi
+	Major MajorStatus
+
+	// Mechanism-specific:
+	Minor C.OM_uint32
+}
+
+func (lib *Lib) MakeError(major, minor C.OM_uint32) *Error {
+	return &Error{
+		lib:   lib,
 		Major: MajorStatus(major),
-		Minor: MinorStatus(minor),
+		Minor: minor,
 	}
 }
 
-// This converts a Status into either nil or something satisfying the error
-// interface.
-func (lib *GssapiLib) CheckError(maybe Status) error {
-	if !maybe.Major.IsError() {
-		return nil
+func (e *Error) GoError() error {
+	if e.Major.IsError() {
+		return e
 	}
-	return &StatusError{lib: lib, status: maybe}
+	return nil
 }
 
-// Simple accessor, given a major/minor status pair, make either nil or something satisfying the error interface.
-func (lib *GssapiLib) MakeError(major, minor C.OM_uint32) error {
-	return lib.CheckError(NewStatus(major, minor))
-}
-
-func (se *StatusError) Error() string {
-	messages := make([]string, 0, 6)
-	additional := make([]Status, 0, 2)
-	buffer := GssBuffer{lib: se.lib}
-	first := true
+func (e *Error) Error() string {
+	messages := []string{}
+	nOther := 0
 	context := C.OM_uint32(0)
+	inquiry := C.OM_uint32(0)
+	code_type := 0
+	first := true
 
-	var inquiry C.OM_uint32
-	var code_type int
-	if se.status.Major.RoutineError() == GSS_S_FAILURE {
-		inquiry = C.OM_uint32(se.status.Minor)
+	if e.Major.RoutineError() == GSS_S_FAILURE {
+		inquiry = e.Minor
 		code_type = GSS_C_MECH_CODE
 	} else {
-		inquiry = C.OM_uint32(se.status.Major)
+		inquiry = C.OM_uint32(e.Major)
 		code_type = GSS_C_GSS_CODE
 	}
 
 	for first || context != C.OM_uint32(0) {
 		first = false
-		var (
-			render_min C.OM_uint32
-		)
-		render_maj := se.lib.gss_display_status(&render_min,
+		min := C.OM_uint32(0)
+
+		// need to free the contents of the buffer
+		// TODO: is it safe to gss_release_buffer on error?
+		b := e.lib.NewBuffer(true)
+
+		// TODO: store a mech_type at the lib level?  Or context? For now GSS_C_NO_OID...
+		maj := C.wrap_gss_display_status(
+			e.lib.Fp_gss_display_status,
+			&min,
 			inquiry,
-			code_type,
-			GSS_C_NO_OID, // store a mech_type at the lib level?  Or context?
+			C.int(code_type),
+			nil,
 			&context,
-			buffer.buffer,
-		)
-		resultStatus := NewStatus(render_maj, render_min)
-		if resultStatus.Major.IsError() {
-			additional = append(additional, resultStatus)
+			b.C_gss_buffer_t)
+
+		err := e.lib.MakeError(maj, min).GoError()
+		if err != nil {
+			nOther = nOther + 1
 		}
-		messages = append(messages, buffer.String())
-		buffer.Release()
+		messages = append(messages, b.String())
+		b.Release()
 	}
-	if len(additional) > 0 {
-		messages = append(messages, fmt.Sprintf("additionally, %d conversions failed", len(additional)))
+	if nOther > 0 {
+		messages = append(messages, fmt.Sprintf("additionally, %d conversions failed", nOther))
 	}
 	messages = append(messages, "")
 	return strings.Join(messages, "\n")
