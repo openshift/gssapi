@@ -29,6 +29,7 @@ func TestNameImportExport(t *testing.T) {
 		}
 		defer b.Release()
 
+		//name, err := b.Name(l.GSS_KRB5_NT_PRINCIPAL_NAME())
 		name, err := b.Name(l.GSS_C_NT_HOSTBASED_SERVICE())
 		if err != nil {
 			t.Errorf("%q: Got error %q, expected nil", n, err.Error())
@@ -45,32 +46,31 @@ func TestNameImportExport(t *testing.T) {
 	n0 := makeName(names[0])
 	defer n0.Release()
 
+	// Make sure we can have the krb mechanism, and normalize the reference
+	// name using it
 	mechs, err := n0.InquireMechs()
 	if err != nil {
-		panic(err)
+		//TODO: need a better test for OS X since this InquireMechs doesn't
+		// seem to work
+		t.Skip(`Couldn't get mechs for`, names[0], `, error:`, err.Error())
+		return
 	}
 
+	// This OID seems to be an avalable merch on linux
 	kerbOID, err := l.MakeBufferString("{ 1 2 840 113554 1 2 2 }\x00").OID()
 	if err != nil {
 		t.Errorf("Got error %q, expected nil", err.Error())
 		return
 	}
 
-	// Make sure we can have the krb mechanism, and normalize the reference
-	// name using it
-	mechs, err = n0.InquireMechs()
+	contains, err := mechs.Contains(kerbOID)
 	if err != nil {
-		t.Logf("Didn't get mechs for %q, may fail test: error: %q", err.Error())
-	} else {
-		contains, err := mechs.Contains(kerbOID)
-		if err != nil {
-			t.Errorf("Got error %q, expected nil", err.Error())
-			return
-		}
-		if !contains {
-			t.Errorf("Expected true")
-			return
-		}
+		t.Errorf("Got error %q, expected nil", err.Error())
+		return
+	}
+	if !contains {
+		t.Errorf("Expected true")
+		return
 	}
 
 	makeNames := func(n string) (

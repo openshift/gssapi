@@ -1,5 +1,8 @@
 // Copyright 2013-2015 Apcera Inc. All rights reserved.
 
+// The OS X gsspi does not seem to support gss_str_to_oid, so don't run the tests there
+//+build !darwin
+
 package gssapi
 
 import (
