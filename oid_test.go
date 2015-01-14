@@ -10,7 +10,7 @@ import (
 )
 
 func TestOID_C(t *testing.T) {
-	l, err := LoadLib()
+	l, err := LoadDefaultLib()
 	if err != nil {
 		t.Error(err)
 		return
@@ -24,7 +24,7 @@ func TestOID_C(t *testing.T) {
 }
 
 func TestOID(t *testing.T) {
-	l, err := LoadLib()
+	l, err := LoadDefaultLib()
 	if err != nil {
 		t.Error(err)
 		return

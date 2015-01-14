@@ -4,22 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-
-	"github.com/apcera/gssapi"
+	"strings"
 )
 
 // Client attempts to connect to the configured server on the security context
 // provided.
 func Client(c *Context) error {
-	if c.Lib == nil {
-		lib, err := gssapi.LoadLib()
-		if err != nil {
-			return err
-		}
-		c.Lib = lib
-	}
-
-	t, err := c.Lib.NewSPNEGOTransport(c.ServiceName)
+	t, err := c.NewSPNEGOTransport(c.ServiceName)
 	if err != nil {
 		return err
 	}
@@ -28,8 +19,11 @@ func Client(c *Context) error {
 		Transport: t,
 	}
 
-	u := c.ServiceAddress + "/" + c.RequestPath
-	fmt.Printf("CLIENT WANTS: GET %s\n\n", u)
+	u := c.ServiceAddress + c.RequestPath
+	if !strings.HasPrefix(u, "http://") {
+		u = "http://" + u
+	}
+	c.Print("CLIENT WANTS: GET ", u)
 
 	resp, err := client.Get(u)
 	if err != nil {
@@ -41,7 +35,11 @@ func Client(c *Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("\n<- CLIENT RECEIVED:")
-	fmt.Println(string(out))
+	c.Print("<- CLIENT RECEIVED:\n", string(out), "\n")
+
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(out), "Hello!") {
+		return fmt.Errorf("Test failed")
+	}
+
 	return nil
 }

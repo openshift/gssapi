@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadLib(t *testing.T) {
-	l, err := LoadLib()
+	l, err := LoadDefaultLib()
 
 	if err != nil {
 		t.Fatal(err)

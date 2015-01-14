@@ -13,17 +13,20 @@ import (
 )
 
 type SPNEGOTransport struct {
-	serviceName *Name
-
 	http.RoundTripper
 	*Lib
 
-	// Authorization value to use in the requests. Note that if requests are not challenged, that information is not cached
+	serviceName   *Name
 	ctx           *CtxId
 	authorization *Buffer
 }
 
-func (lib *Lib) NewSPNEGOTransportRoundTripper(rt http.RoundTripper, serviceName string) (http.RoundTripper, error) {
+func (lib *Lib) NewSPNEGOTransport(serviceName string) (*SPNEGOTransport, error) {
+	t := &SPNEGOTransport{
+		Lib:          lib,
+		RoundTripper: &http.Transport{},
+	}
+
 	namebuf := lib.MakeBufferString(serviceName)
 	defer namebuf.Release()
 
@@ -31,18 +34,10 @@ func (lib *Lib) NewSPNEGOTransportRoundTripper(rt http.RoundTripper, serviceName
 	if err != nil {
 		return nil, err
 	}
+	t.serviceName = name
 
-	t := &SPNEGOTransport{
-		Lib:          lib,
-		serviceName:  name,
-		RoundTripper: rt,
-	}
-
+	lib.Print("New SPNEGOTransport for ", t.serviceName)
 	return t, nil
-}
-
-func (lib *Lib) NewSPNEGOTransport(serviceName string) (http.RoundTripper, error) {
-	return lib.NewSPNEGOTransportRoundTripper(&http.Transport{}, serviceName)
 }
 
 func (t *SPNEGOTransport) Release() {
@@ -77,8 +72,7 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 			return nil, err
 		}
 		out, _ := httputil.DumpResponse(resp, true)
-		fmt.Println("<- SPNEGO RECEIVED:")
-		fmt.Printf("%s\n\n", string(out))
+		t.Print("<- SPNEGO RECEIVED:\n", string(out), "\n")
 		resp.Body.Close()
 
 		if !negotiate {
@@ -86,7 +80,6 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		}
 
 		// other outputs can be safely ignored, no need to release
-		// fmt.Println("DEBUG: preparing to initiate security context")
 		t.ctx, _, sendToken, _, _, err = t.InitSecContext(
 			t.GSS_C_NO_CREDENTIAL(),
 			t.ctx, t.serviceName, t.GSS_C_NO_OID(), 0, 0,
@@ -119,8 +112,7 @@ func (t *SPNEGOTransport) doRoundTrip(req *http.Request, inputToken *Buffer) (
 	t.AddSPNEGONegotiate(req.Header, "Authorization", inputToken)
 
 	out, _ := httputil.DumpRequest(req, true)
-	fmt.Println("-> SPNEGO SEND:")
-	fmt.Printf("%s\n\n", string(out))
+	t.Print("-> SPNEGO SEND:\n", string(out), "\n")
 
 	resp, err = t.RoundTripper.RoundTrip(req)
 	if err != nil {
@@ -138,7 +130,8 @@ func (lib *Lib) AddSPNEGONegotiate(h http.Header, name string, token *Buffer) {
 
 	v := "Negotiate"
 	if !token.IsEmpty() {
-		v = v + " " + base64.StdEncoding.EncodeToString(token.Bytes())
+		data := token.Bytes()
+		v = v + " " + base64.StdEncoding.EncodeToString(data)
 	}
 	h.Set(name, v)
 }

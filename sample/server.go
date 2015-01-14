@@ -4,42 +4,60 @@ import (
 	"fmt"
 	"github.com/apcera/gssapi"
 	"net/http"
-	"net/http/httptest"
+	"os"
 )
 
-func Server(c *Context) (string, error) {
+func Server(c *Context) error {
 	if c.ServiceName == "" {
-		return "", fmt.Errorf("Must provide a non-empty value for --service-name")
+		return fmt.Errorf("Must provide a non-empty value for --service-name")
 	}
+
+	c.Print("Starting service ", c.ServiceName)
 
 	nameBuf := c.MakeBufferString(c.ServiceName)
 	defer nameBuf.Release()
 	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME())
 	defer name.Release()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	cred, actualMechs, _, err := c.AcquireCred(name,
 		gssapi.GSS_C_INDEFINITE, c.GSS_C_NO_OID_SET(), gssapi.GSS_C_ACCEPT)
 	actualMechs.Release()
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer cred.Release()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	keytab := os.Getenv("KRB5_KEYTAB")
+	if keytab == "" {
+		keytab = "default /etc/krb5.keytab"
+	}
+	c.Print("Acquired credentials using ", keytab)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		pass, err := filter(c, cred, w, r)
 		if err != nil {
+			//TODO: differentiate invalid tokens here and return a 403
+			c.Print("-> OUT: Filter error: ", err)
 			finalize(c, w, http.StatusInternalServerError, nil)
 			return
 		}
 		if !pass {
+			c.Print("-> OUT: Challenge, need a token")
 			return
 		}
 		w.Write([]byte("Hello!"))
-	}))
-	return ts.URL, nil
+		c.Print("-> OUT: Success, responded with Hello!")
+	})
+
+	err = http.ListenAndServe(c.ServiceAddress, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func filter(c *Context,
@@ -47,6 +65,7 @@ func filter(c *Context,
 	pass bool, err error) {
 
 	negotiate, inputToken := c.CheckSPNEGONegotiate(r.Header, "Authorization")
+	c.Print("<-  IN: negotiate: ", negotiate, ", inputToken length: ", len(inputToken.Bytes()))
 
 	// returning a 401 with a challenge, but no token will make the client
 	// initiate security context and re-submit with a non-empty Authorization
