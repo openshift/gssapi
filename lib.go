@@ -112,7 +112,7 @@ type GSSCredentialer interface {
 	MakeBufferString(string) *Buffer
 
 	// GSS_KRB5_NT_PRINCIPAL_NAME returns a name format.
-	GSS_KRB5_NT_PRINCIPAL_NAME() string
+	GSS_KRB5_NT_PRINCIPAL_NAME() *OID
 
 	// GSS_C_NO_OID_SET returns an *OIDSet.
 	GSS_C_NO_OID_SET() *OIDSet
@@ -122,14 +122,14 @@ type GSSCredentialer interface {
 type GSSSPNEGOtiator interface {
 	// CheckSPNEGONegotiate handles negotiation based upon the presence of a
 	// specified header.
-	CheckSPNEGONegotiate(*http.Header, string) (bool, *Buffer)
+	CheckSPNEGONegotiate(http.Header, string) (bool, *Buffer)
 
 	// AddSPNEGONegotiate adds a formatted token as a header to an HTTP writer.
-	AddSPNEGONegotiate(*http.Header, string, *Buffer)
+	AddSPNEGONegotiate(http.Header, string, *Buffer)
 
 	// AcceptSecContext accepts a security context and attempts to validate
 	// authorization.
-	AcceptSecContext(*CtxId, *Buffer, ChannelBindings) (*CtxId, *Name, *OID,
+	AcceptSecContext(*CtxId, *CredId, *Buffer, ChannelBindings) (*CtxId, *Name, *OID,
 		*Buffer, uint32, time.Duration, *CredId, error)
 
 	// GSS_C_NO_CONTEXT returns a CtxId.
