@@ -13,7 +13,7 @@ import (
 type SPNEGOTransport struct {
 	serviceName *Name
 
-	http.Transport
+	http.RoundTripper
 	*Lib
 
 	// Authorization value to use in the requests. Note that if requests are not challenged, that information is not cached
@@ -21,7 +21,7 @@ type SPNEGOTransport struct {
 	authorization *Buffer
 }
 
-func (lib *Lib) NewSPNEGOTransport(serviceName string) (http.RoundTripper, error) {
+func (lib *Lib) NewSPNEGOTransportRoundTripper(rt http.RoundTripper, serviceName string) (http.RoundTripper, error) {
 	namebuf := lib.MakeBufferString(serviceName)
 	defer namebuf.Release()
 
@@ -31,11 +31,16 @@ func (lib *Lib) NewSPNEGOTransport(serviceName string) (http.RoundTripper, error
 	}
 
 	t := &SPNEGOTransport{
-		Lib:         lib,
-		serviceName: name,
+		Lib:          lib,
+		serviceName:  name,
+		RoundTripper: rt,
 	}
 
 	return t, nil
+}
+
+func (lib *Lib) NewSPNEGOTransport(serviceName string) (http.RoundTripper, error) {
+	return lib.NewSPNEGOTransportRoundTripper(&http.Transport{}, serviceName)
 }
 
 func (t *SPNEGOTransport) Release() {
@@ -115,7 +120,7 @@ func (t *SPNEGOTransport) doRoundTrip(req *http.Request, inputToken *Buffer) (
 	fmt.Println("-> SPNEGO SEND:")
 	fmt.Printf("%s\n\n", string(out))
 
-	resp, err = t.Transport.RoundTrip(req)
+	resp, err = t.RoundTripper.RoundTrip(req)
 	if err != nil {
 		return nil, false, nil, err
 	}
