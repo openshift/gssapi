@@ -1,15 +1,16 @@
 // Copyright 2013-2015 Apcera Inc. All rights reserved.
 
-// +build !apcera
+// +build apcera
 
 package gssapi
 
 import (
 	"encoding/base64"
 	"fmt"
-	"net/http"
-	"net/http/httputil"
 	"strings"
+
+	http "github.com/apcera/http-with-callbacks"
+	"github.com/apcera/http-with-callbacks/httputil"
 )
 
 type SPNEGOTransport struct {
