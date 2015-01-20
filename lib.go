@@ -20,6 +20,7 @@ import "C"
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -29,6 +30,11 @@ import (
 	"time"
 	"unsafe"
 )
+
+// matches log, not fmt
+type Printer interface {
+	Print(a ...interface{})
+}
 
 // ftable fields will be initialized to the corresponding function pointers from the
 // GSSAPI library. They must be of form Fp_function_name (Capital 'F' so that
@@ -83,6 +89,8 @@ type ftable struct {
 
 // Lib encapsulates both the GSSAPI and the library dlopen()'d for it.
 type Lib struct {
+	Printer
+
 	handle unsafe.Pointer
 
 	ftable
@@ -144,28 +152,62 @@ const (
 	fpPrefix = "Fp_"
 )
 
-func LoadLib() (*Lib, error) {
-	libname := GSSAPILIB_DEFAULT_MIT
-	libExt := ".so"
-	switch runtime.GOOS {
-	case "darwin":
-		libExt = ".dylib"
-	case "freebsd":
-		libname = GSSAPILIB_DEFAULT_HEIMDAL
-	}
-	if envLib := os.Getenv(ENVVAR_GSSAPILIB); envLib != "" {
-		libname = envLib
+func LoadDefaultLib() (*Lib, error) {
+	path, err := LibPath("", false, false)
+	if err != nil {
+		return nil, err
 	}
 
-	if !strings.HasSuffix(libname, libExt) {
-		libname += libExt
+	lib, err := LoadLib(path)
+	if err != nil {
+		return nil, err
 	}
 
+	lib.Printer = log.New(os.Stderr, "gssapi", log.LstdFlags)
+
+	return lib, nil
+}
+
+func appendExt(path string) string {
+	ext := ".so"
+	if runtime.GOOS == "darwin" {
+		ext = ".dylib"
+	}
+	if !strings.HasSuffix(path, ext) {
+		path += ext
+	}
+	return path
+}
+
+func LibPath(path string, useHeimdal bool, useMIT bool) (string, error) {
+	switch {
+	case path != "" && !useMIT && !useHeimdal:
+		return path, nil
+
+	case path == "" && useMIT && !useHeimdal:
+		return appendExt(GSSAPILIB_DEFAULT_MIT), nil
+
+	case path == "" && !useMIT && useHeimdal:
+		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL), nil
+
+	case path == "" && runtime.GOOS == "freebsd":
+		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL), nil
+
+	case path == "" && !useMIT && !useHeimdal:
+		if envLib := os.Getenv(ENVVAR_GSSAPILIB); envLib != "" {
+			return envLib, nil
+		}
+		return appendExt(GSSAPILIB_DEFAULT_MIT), nil
+	}
+	return "", fmt.Errorf("invalid arguments to gssapi.LoadPath")
+}
+
+func LoadLib(path string) (*Lib, error) {
 	// We get the error in a separate call, so we need to lock OS thread
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	lib_cs := C.CString(libname)
+	lib_cs := C.CString(path)
 	defer C.free(unsafe.Pointer(lib_cs))
 	// we don't use RTLD_FIRST, it might be the case that the GSSAPI lib
 	// delegates symbols to other libs it links against (eg, Kerberos)
@@ -243,4 +285,11 @@ func (lib *Lib) populateFunctions() {
 		// Save the value into the struct
 		functionsV.FieldByIndex([]int{i}).SetPointer(v)
 	}
+}
+
+func (lib Lib) Print(a ...interface{}) {
+	if lib.Printer == nil {
+		return
+	}
+	lib.Printer.Print(a...)
 }

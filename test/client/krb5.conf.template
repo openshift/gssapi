@@ -1,0 +1,13 @@
+[libdefaults]
+        default_realm = EXAMPLE.COM
+        noaddresses = true
+
+[realms]
+        EXAMPLE.COM = {
+		# will be replaced by the script
+                kdc = KDC_ADDRESS
+        }
+
+[domain_realm]
+        example.com = EXAMPLE.COM
+        .example.com = EXAMPLE.COM

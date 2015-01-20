@@ -128,12 +128,18 @@ func (b *Buffer) Release() error {
 }
 
 // Bytes returns teh contents of a Buffer as a byte slice
-func (b Buffer) Bytes() []byte {
+func (b *Buffer) Bytes() []byte {
+	if b == nil {
+		return nil
+	}
 	return C.GoBytes(b.C_gss_buffer_t.value, C.int(b.C_gss_buffer_t.length))
 }
 
 // String returns the contents of a Buffer as a string
-func (b Buffer) String() string {
+func (b *Buffer) String() string {
+	if b == nil {
+		return ""
+	}
 	return C.GoStringN((*C.char)(b.C_gss_buffer_t.value), C.int(b.C_gss_buffer_t.length))
 }
 

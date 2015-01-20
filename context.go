@@ -236,6 +236,7 @@ func (lib *Lib) AcceptSecContext(
 
 	err = lib.MakeError(maj, min).GoError()
 	if err != nil {
+		lib.Print("AcceptSecContext: ", err)
 		return nil, nil, nil, nil, 0, 0, nil, err
 	}
 
