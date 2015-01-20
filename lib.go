@@ -26,7 +26,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 )
@@ -94,13 +93,6 @@ type Lib struct {
 	handle unsafe.Pointer
 
 	ftable
-
-	// to populate the functions
-	populate    sync.Once
-	populateErr error
-
-	unload    sync.Once
-	unloadErr error
 }
 
 // A GSSLibrarian is an interface that defines minimal functionality for SPNEGO
@@ -152,33 +144,6 @@ const (
 	fpPrefix = "Fp_"
 )
 
-func LoadDefaultLib() (*Lib, error) {
-	path, err := LibPath("", false, false)
-	if err != nil {
-		return nil, err
-	}
-
-	lib, err := LoadLib(path)
-	if err != nil {
-		return nil, err
-	}
-
-	lib.Printer = log.New(os.Stderr, "gssapi", log.LstdFlags)
-
-	return lib, nil
-}
-
-func appendExt(path string) string {
-	ext := ".so"
-	if runtime.GOOS == "darwin" {
-		ext = ".dylib"
-	}
-	if !strings.HasSuffix(path, ext) {
-		path += ext
-	}
-	return path
-}
-
 func LibPath(path string, useHeimdal bool, useMIT bool) (string, error) {
 	switch {
 	case path != "" && !useMIT && !useHeimdal:
@@ -202,6 +167,22 @@ func LibPath(path string, useHeimdal bool, useMIT bool) (string, error) {
 	return "", fmt.Errorf("invalid arguments to gssapi.LoadPath")
 }
 
+func LoadDefaultLib() (*Lib, error) {
+	path, err := LibPath("", false, false)
+	if err != nil {
+		return nil, err
+	}
+
+	lib, err := LoadLib(path)
+	if err != nil {
+		return nil, err
+	}
+
+	lib.Printer = log.New(os.Stderr, "gssapi", log.LstdFlags)
+
+	return lib, nil
+}
+
 func LoadLib(path string) (*Lib, error) {
 	// We get the error in a separate call, so we need to lock OS thread
 	runtime.LockOSThread()
@@ -220,10 +201,10 @@ func LoadLib(path string) (*Lib, error) {
 		handle: dlhandle,
 	}
 
-	lib.populate.Do(lib.populateFunctions)
-	if lib.populateErr != nil {
+	err := lib.populateFunctions()
+	if err != nil {
 		lib.Unload()
-		return nil, lib.populateErr
+		return nil, err
 	}
 
 	return lib, nil
@@ -234,32 +215,33 @@ func (lib *Lib) Unload() error {
 		return nil
 	}
 
-	lib.unload.Do(func() {
-		// in case other threads do dl stuff...
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		i := C.dlclose(lib.handle)
-		if i == -1 {
-			lib.unloadErr = fmt.Errorf("%s", C.GoString(C.dlerror()))
-			return
-		}
-
-		lib.handle = nil
-		return
-	})
-
-	return lib.unloadErr
-}
-
-func (lib *Lib) populateFunctions() {
-
-	libT := reflect.TypeOf(lib.ftable)
-	functionsV := reflect.ValueOf(lib).Elem().FieldByName("ftable")
-
-	// no one else to touch dl while we are working!
+	//TODO: is runtime.LockOSThread needed here?
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
+	i := C.dlclose(lib.handle)
+	if i == -1 {
+		return fmt.Errorf("%s", C.GoString(C.dlerror()))
+	}
+
+	lib.handle = nil
+	return nil
+}
+
+func appendExt(path string) string {
+	ext := ".so"
+	if runtime.GOOS == "darwin" {
+		ext = ".dylib"
+	}
+	if !strings.HasSuffix(path, ext) {
+		path += ext
+	}
+	return path
+}
+
+func (lib *Lib) populateFunctions() error {
+	libT := reflect.TypeOf(lib.ftable)
+	functionsV := reflect.ValueOf(lib).Elem().FieldByName("ftable")
 
 	n := libT.NumField()
 	for i := 0; i < n; i++ {
@@ -267,10 +249,9 @@ func (lib *Lib) populateFunctions() {
 		f := libT.FieldByIndex([]int{i})
 
 		if !strings.HasPrefix(f.Name, fpPrefix) {
-			lib.populateErr = fmt.Errorf(
+			return fmt.Errorf(
 				"Unexpected: field %q does not start with %q",
 				f.Name, fpPrefix)
-			return
 		}
 
 		// Resolve the symbol.
@@ -278,17 +259,18 @@ func (lib *Lib) populateFunctions() {
 		v := C.dlsym(lib.handle, cfname)
 		C.free(unsafe.Pointer(cfname))
 		if v == nil {
-			lib.populateErr = fmt.Errorf("%s", C.GoString(C.dlerror()))
-			return
+			return fmt.Errorf("%s", C.GoString(C.dlerror()))
 		}
 
 		// Save the value into the struct
 		functionsV.FieldByIndex([]int{i}).SetPointer(v)
 	}
+
+	return nil
 }
 
-func (lib Lib) Print(a ...interface{}) {
-	if lib.Printer == nil {
+func (lib *Lib) Print(a ...interface{}) {
+	if lib == nil || lib.Printer == nil {
 		return
 	}
 	lib.Printer.Print(a...)

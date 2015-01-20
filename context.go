@@ -113,6 +113,7 @@ wrap_gss_delete_sec_context(void *fp,
 import "C"
 
 import (
+	"runtime"
 	"time"
 )
 
@@ -133,8 +134,10 @@ func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 	ctxOut *CtxId, actualMechType *OID, outputToken *Buffer, retFlags uint32,
 	timeRec time.Duration, err error) {
 
-	// prepare the input params
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
+	// prepare the input params
 	C_initiator := C.gss_cred_id_t(nil)
 	if initiatorCredHandle != nil {
 		C_initiator = initiatorCredHandle.C_gss_cred_id_t
@@ -195,6 +198,9 @@ func (lib *Lib) AcceptSecContext(
 	retFlags uint32, timeRec time.Duration, delegatedCredHandle *CredId,
 	err error) {
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	// prepare the inputs
 	C_acceptorCredHandle := C.gss_cred_id_t(nil)
 	if acceptorCredHandle != nil {
@@ -252,6 +258,9 @@ func (ctx *CtxId) DeleteSecContext() error {
 		return nil
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	min := C.OM_uint32(0)
 	maj := C.wrap_gss_delete_sec_context(ctx.Fp_gss_delete_sec_context,
 		&min, &ctx.C_gss_ctx_id_t, nil)
@@ -259,7 +268,6 @@ func (ctx *CtxId) DeleteSecContext() error {
 	return ctx.MakeError(maj, min).GoError()
 }
 
-// TODO: gss_accept_sec_context
 // TODO: gss_process_context_token
 // TODO: gss_context_time
 // TODO: gss_inquire_context
