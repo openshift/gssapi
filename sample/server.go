@@ -30,7 +30,7 @@ func Server(c *Context) error {
 	}
 	defer cred.Release()
 
-	keytab := os.Getenv("KRB5_KEYTAB")
+	keytab := os.Getenv("KRB5_KTNAME")
 	if keytab == "" {
 		keytab = "default /etc/krb5.keytab"
 	}

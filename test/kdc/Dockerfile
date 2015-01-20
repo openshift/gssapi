@@ -1,11 +1,8 @@
 FROM ubuntu:14.04
 
 RUN apt-get -y update
-
 ADD krb5.conf /etc/krb5.conf
-
 RUN apt-get -y install heimdal-kdc
-RUN apt-get -y install libsasl2-modules-gssapi-heimdal
 
 EXPOSE	88
 

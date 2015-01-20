@@ -7,4 +7,5 @@ exec /opt/go-gssapi-test-service/service \
 	-service-name=service.user/kdc.example.com \
 	-service-address=:80 \
 	-gssapi-path=/usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2 \
-	-krb5-config=/opt/go-gssapi-test-service/krb5.conf
+	-krb5-config=/opt/go-gssapi-test-service/krb5.conf \
+	-krb5-ktname=/opt/go-gssapi-test-service/krb5.keytab

@@ -12,7 +12,7 @@ type Context struct {
 	ServiceName    string
 	ServiceAddress string
 	RequestPath    string
-	Krb5Keytab     string
+	Krb5Ktname     string
 	Krb5Config     string
 	LibPathMIT     bool
 	LibPathHeimdal bool
@@ -28,7 +28,7 @@ func init() {
 	flag.StringVar(&c.ServiceName, "service-name", "SampleService", "[C,S] service name")
 	flag.StringVar(&c.ServiceAddress, "service-address", ":8080", "[C,S] service address hostname:port")
 	flag.StringVar(&c.RequestPath, "request", "/", "[C,S] test path to use")
-	flag.StringVar(&c.Krb5Keytab, "krb5-keytab", "", "[S] path to the keytab file")
+	flag.StringVar(&c.Krb5Ktname, "krb5-ktname", "", "[S] path to the keytab file")
 	flag.StringVar(&c.Krb5Config, "krb5-config", "", "[C,S] path to krb5.config file")
 	flag.BoolVar(&c.LibPathMIT, "gssapi-mit", false, "[C,S] use the default MIT library path (libgssapi_krb5.so)")
 	flag.BoolVar(&c.LibPathHeimdal, "gssapi-heimdal", false, "[C,S] use the default Heimdal library path (libgssapi.so)")
@@ -45,8 +45,9 @@ func main() {
 			logger.Fatal(err)
 		}
 	}
-	if c.Krb5Keytab != "" {
-		err := os.Setenv("KRB5_KEYTAB", c.Krb5Keytab)
+
+	if c.Krb5Ktname != "" {
+		err := os.Setenv("KRB5_KTNAME", c.Krb5Ktname)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -74,6 +75,6 @@ func main() {
 	}
 
 	if err != nil {
-		logger.Fatalf("mode:%v error:%v\n", c.Mode, err)
+		logger.Fatalf("mode:%q error:%q\n", c.Mode, err)
 	}
 }
