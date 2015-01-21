@@ -65,7 +65,7 @@ func filter(c *Context,
 	pass bool, err error) {
 
 	negotiate, inputToken := c.CheckSPNEGONegotiate(r.Header, "Authorization")
-	c.Print("<-  IN: negotiate: ", negotiate, ", inputToken length: ", len(inputToken.Bytes()))
+	// c.Print("<-  IN: negotiate: ", negotiate, ", inputToken length: ", len(inputToken.Bytes()))
 
 	// returning a 401 with a challenge, but no token will make the client
 	// initiate security context and re-submit with a non-empty Authorization
