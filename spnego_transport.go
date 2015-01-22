@@ -121,7 +121,15 @@ func (t *SPNEGOTransport) doRoundTrip(req *http.Request, inputToken *Buffer) (
 	return resp, negotiate, outputToken, nil
 }
 
-func (lib *Lib) AddSPNEGONegotiate(h http.Header, name string, token *Buffer) {
+// A HeaderProxy is an interface designed to remove the dependency upon net/http
+// from the SPNEGO helper methods below.
+type HeaderProxy interface {
+	Get(string) string
+
+	Set(string, string)
+}
+
+func (lib *Lib) AddSPNEGONegotiate(h HeaderProxy, name string, token *Buffer) {
 	if name == "" {
 		return
 	}
@@ -134,7 +142,7 @@ func (lib *Lib) AddSPNEGONegotiate(h http.Header, name string, token *Buffer) {
 	h.Set(name, v)
 }
 
-func (lib *Lib) CheckSPNEGONegotiate(h http.Header, name string) (present bool, token *Buffer) {
+func (lib *Lib) CheckSPNEGONegotiate(h HeaderProxy, name string) (present bool, token *Buffer) {
 	v := h.Get(name)
 	if len(v) == 0 || !strings.HasPrefix(v, "Negotiate") {
 		return false, nil
