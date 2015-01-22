@@ -35,6 +35,8 @@ type KerberizedServer struct {
 	*Lib
 }
 
+var _ ServerNegotiator = KerberizedServer{}
+
 // AcquireCred acquires a Kerberos credential (keytab) from environment. The
 // CredId MUST be released by the caller.
 func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
