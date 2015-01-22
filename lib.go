@@ -101,36 +101,31 @@ const (
 	fpPrefix = "Fp_"
 )
 
-func LibPath(path string, useHeimdal bool, useMIT bool) (string, error) {
+func LibPath(path string, useHeimdal bool, useMIT bool) string {
 	switch {
 	case path != "" && !useMIT && !useHeimdal:
-		return path, nil
+		return path
 
 	case path == "" && useMIT && !useHeimdal:
-		return appendExt(GSSAPILIB_DEFAULT_MIT), nil
+		return appendExt(GSSAPILIB_DEFAULT_MIT)
 
 	case path == "" && !useMIT && useHeimdal:
-		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL), nil
+		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL)
 
 	case path == "" && runtime.GOOS == "freebsd":
-		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL), nil
+		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL)
 
 	case path == "" && !useMIT && !useHeimdal:
 		if envLib := os.Getenv(ENVVAR_GSSAPILIB); envLib != "" {
-			return envLib, nil
+			return envLib
 		}
-		return appendExt(GSSAPILIB_DEFAULT_MIT), nil
+		return appendExt(GSSAPILIB_DEFAULT_MIT)
 	}
-	return "", fmt.Errorf("invalid arguments to gssapi.LoadPath")
+	return ""
 }
 
 func LoadDefaultLib() (*Lib, error) {
-	path, err := LibPath("", false, false)
-	if err != nil {
-		return nil, err
-	}
-
-	lib, err := LoadLib(path)
+	lib, err := LoadLib(LibPath("", false, false))
 	if err != nil {
 		return nil, err
 	}

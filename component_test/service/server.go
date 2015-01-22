@@ -40,16 +40,23 @@ func Server(c *Context) error {
 		pass, err := filter(c, cred, w, r)
 		if err != nil {
 			//TODO: differentiate invalid tokens here and return a 403
-			c.Print("-> OUT: Filter error: ", err)
+			c.Print(fmt.Sprintf("%d %q %q %q",
+				http.StatusInternalServerError,
+				r.Method,
+				r.URL.String(), err))
 			finalize(c, w, http.StatusInternalServerError, nil)
 			return
 		}
 		if !pass {
-			c.Print("-> OUT: Challenge, need a token")
+			c.Print(fmt.Sprintf(`%d %q %q "no input token provided"`,
+				http.StatusUnauthorized,
+				r.Method,
+				r.URL.String()))
+			finalize(c, w, http.StatusUnauthorized, nil)
 			return
 		}
 		w.Write([]byte("Hello!"))
-		c.Print("-> OUT: Success, responded with Hello!")
+		c.Print(fmt.Sprintf("%d %q %q", http.StatusOK, r.Method, r.URL.String()))
 	})
 
 	err = http.ListenAndServe(c.ServiceAddress, nil)
@@ -65,12 +72,10 @@ func filter(c *Context,
 	pass bool, err error) {
 
 	negotiate, inputToken := c.CheckSPNEGONegotiate(r.Header, "Authorization")
-	c.Print("<-  IN: negotiate: ", negotiate, ", inputToken length: ", len(inputToken.Bytes()))
 
 	// returning a 401 with a challenge, but no token will make the client
 	// initiate security context and re-submit with a non-empty Authorization
 	if !negotiate || inputToken.IsEmpty() {
-		finalize(c, w, http.StatusUnauthorized, nil)
 		return false, nil
 	}
 
