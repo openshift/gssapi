@@ -38,12 +38,22 @@ func (lib *Lib) NewSPNEGOTransport(serviceName string) (*SPNEGOTransport, error)
 	return t, nil
 }
 
-func (t *SPNEGOTransport) Release() {
+func (t *SPNEGOTransport) Release() error {
 	if t == nil {
-		return
+		return nil
 	}
 
-	t.serviceName.Release()
+	if err := t.serviceName.Release(); err != nil {
+		return err
+	}
+	if err := t.ctx.Release(); err != nil {
+		return err
+	}
+	if err := t.authorization.Release(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
