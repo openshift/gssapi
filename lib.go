@@ -21,12 +21,10 @@ import "C"
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"reflect"
 	"runtime"
 	"strings"
-	"time"
 	"unsafe"
 )
 
@@ -93,47 +91,6 @@ type Lib struct {
 	handle unsafe.Pointer
 
 	ftable
-}
-
-// A GSSLibrarian is an interface that defines minimal functionality for SPNEGO
-// and credential issuance using GSSAPI.
-type GSSLibrarian interface {
-	GSSCredentialer
-
-	GSSSPNEGOtiator
-}
-
-// A GSSCredentialer allows for the acquisition of a credential.
-type GSSCredentialer interface {
-	// AcquireCred acquires a GSSAPI credential.
-	AcquireCred(*Name, time.Duration, *OIDSet, CredUsage) (*CredId, *OIDSet, time.Duration, error)
-
-	// MakeBufferString makes a pointer to a Buffer from a string.
-	MakeBufferString(string) *Buffer
-
-	// GSS_KRB5_NT_PRINCIPAL_NAME returns a name format.
-	GSS_KRB5_NT_PRINCIPAL_NAME() *OID
-
-	// GSS_C_NO_OID_SET returns an *OIDSet.
-	GSS_C_NO_OID_SET() *OIDSet
-}
-
-// A GSSSPNEGOtiator handles SPNEGO communications.
-type GSSSPNEGOtiator interface {
-	// CheckSPNEGONegotiate handles negotiation based upon the presence of a
-	// specified header.
-	CheckSPNEGONegotiate(http.Header, string) (bool, *Buffer)
-
-	// AddSPNEGONegotiate adds a formatted token as a header to an HTTP writer.
-	AddSPNEGONegotiate(http.Header, string, *Buffer)
-
-	// AcceptSecContext accepts a security context and attempts to validate
-	// authorization.
-	AcceptSecContext(*CtxId, *CredId, *Buffer, ChannelBindings) (*CtxId, *Name, *OID,
-		*Buffer, uint32, time.Duration, *CredId, error)
-
-	// GSS_C_NO_CONTEXT returns a CtxId.
-	GSS_C_NO_CONTEXT() *CtxId
 }
 
 const (
