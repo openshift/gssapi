@@ -111,7 +111,7 @@ func (lib *Lib) CreateOIDSet(oids ...*OID) (s *OIDSet, err error) {
 
 // Release frees all C memory associated with an OIDSet.
 func (s *OIDSet) Release() (err error) {
-	if s == nil {
+	if s == nil || s.C_gss_OID_set == nil {
 		return nil
 	}
 

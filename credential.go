@@ -98,7 +98,7 @@ func (lib *Lib) AcquireCred(desiredName *Name, timeReq time.Duration,
 }
 
 func (c *CredId) Release() error {
-	if c == nil {
+	if c == nil || c.C_gss_cred_id_t == nil {
 		return nil
 	}
 

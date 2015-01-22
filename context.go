@@ -254,7 +254,7 @@ func (lib *Lib) AcceptSecContext(
 // longer recommended, and it would have to be Released by the caller
 func (ctx *CtxId) DeleteSecContext() error {
 
-	if ctx == nil {
+	if ctx == nil || ctx.C_gss_ctx_id_t == nil {
 		return nil
 	}
 
@@ -266,6 +266,10 @@ func (ctx *CtxId) DeleteSecContext() error {
 		&min, &ctx.C_gss_ctx_id_t, nil)
 
 	return ctx.MakeError(maj, min).GoError()
+}
+
+func (ctx *CtxId) Release() error {
+	return ctx.DeleteSecContext()
 }
 
 // TODO: gss_process_context_token

@@ -173,6 +173,9 @@ func (lib *Lib) GSS_KRB5_NT_PRINCIPAL_NAME() *OID {
 // Release frees the memory associated with an internal representation of the
 // name.
 func (n *Name) Release() error {
+	if n == nil || n.C_gss_name_t == nil {
+		return nil
+	}
 	var min C.OM_uint32
 	maj := C.wrap_gss_release_name(n.Fp_gss_release_name, &min, &n.C_gss_name_t)
 	err := n.MakeError(maj, min).GoError()
