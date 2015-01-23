@@ -1,12 +1,12 @@
 [libdefaults]
-        default_realm = EXAMPLE.COM
+        default_realm = TEST.GOGSSAPI.COM
         noaddresses = true
 
 [realms]
-        EXAMPLE.COM = {
+        TEST.GOGSSAPI.COM = {
                 kdc = KDC_ADDRESS
         }
 
 [domain_realm]
-        example.com = EXAMPLE.COM
-        .example.com = EXAMPLE.COM
+        s.gogssapi.com = TEST.GOGSSAPI.COM
+        .s.gogssapi.com = TEST.GOGSSAPI.COM

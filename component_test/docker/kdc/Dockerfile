@@ -10,12 +10,13 @@ EXPOSE	88
 RUN mkdir /etc/docker-kdc
 
 # Add kerberos principal/s.
-RUN /bin/echo -e '\n\n\n\n\n\nP@ssword!\nP@ssword!\n' | kadmin -l add service.user/kdc.example.com
-RUN /bin/echo -e '\n\n\n\n\n\nP@ssword!\nP@ssword!\n' | kadmin -l add client.user/kdc.example.com
+RUN /bin/echo -e '\n\n\n\n\n\nP@ssword!\nP@ssword!\n' | kadmin -l add HTTP/service.s.gogssapi.com@TEST.GOGSSAPI.COM
+RUN /bin/echo -e '\n\n\n\n\n\nP@ssword!\nP@ssword!\n' | kadmin -l add client.user@TEST.GOGSSAPI.COM
 
 # Export keytab.
-RUN kadmin -l ext_keytab -k /etc/docker-kdc/krb5.keytab service.user/kdc.example.com@EXAMPLE.COM
+RUN kadmin -l ext_keytab -k /etc/docker-kdc/krb5.keytab HTTP/service.s.gogssapi.com@TEST.GOGSSAPI.COM
 
 # KDC daemon startup.
+#TODO -- what's in this config? Need to provide my own?
 ENTRYPOINT ["/usr/lib/heimdal-servers/kdc", "--config-file=/etc/heimdal-kdc/kdc.conf", "-P 88"]
 

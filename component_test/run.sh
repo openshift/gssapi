@@ -1,7 +1,9 @@
 #!/bin/bash -e
 
+#TODO: Add a -c flag to clear out old images, or rebuild by default, but have a flag to reuse 
+
 function print() {
-	echo "apcera/go-gssapi-test: $*"
+	>&2 echo "apcera/go-gssapi-test: $*"
 }
 
 function cleanup_containers() {
@@ -37,7 +39,7 @@ function build_image() {
 			--quiet \
 			--rm \
 			--tag=${img} \
-			$TMP_DIR/${1} >/dev/null
+			$TMP_DIR/${1}
 	else
 		print "Reuse ${img} cached image ${image}"
 	fi
@@ -65,19 +67,19 @@ cp -R ./docker/client $TMP_DIR/
 
 cleanup_containers
 
-build_image "kdc" "unless exists"
+build_image "kdc" "unless exists" >/dev/null
 run_image "kdc" "--detach" >/dev/null
 
 function copy_keytab() {
 	sudo docker cp kdc:/etc/docker-kdc/krb5.keytab $TMP_DIR/base-service
 }
-build_image "base-service" "unless exists" "copy_keytab"
-build_image "service"
+build_image "base-service" "unless exists" "copy_keytab" >/dev/null
+build_image "service" >/dev/null
 run_image "service" "--detach --link=kdc:kdc" >/dev/null
 
 
-build_image "base-client" "unless exists"
-build_image "client"
+build_image "base-client" "unless exists" >/dev/null
+build_image "client" >/dev/null
 set +e
 run_image "client" "--link=service:service --link=kdc:kdc"
 if [[ "$?" != "0" ]]; then
