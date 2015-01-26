@@ -12,7 +12,7 @@ func Server(c *Context) error {
 		return fmt.Errorf("Must provide a non-empty value for --service-name")
 	}
 
-	c.Print("Starting service ", c.ServiceName)
+	c.Print(fmt.Sprintf("Starting service %q", c.ServiceName))
 
 	nameBuf := c.MakeBufferString(c.ServiceName)
 	defer nameBuf.Release()
@@ -34,7 +34,7 @@ func Server(c *Context) error {
 	if keytab == "" {
 		keytab = "default /etc/krb5.keytab"
 	}
-	c.Print("Acquired credentials using ", keytab)
+	c.Print(fmt.Sprintf("Acquired credentials using %v", keytab))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		pass, err := filter(c, cred, w, r)

@@ -15,17 +15,31 @@ import "C"
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"unsafe"
 )
 
-// matches log, not fmt
+// Printer matches the log package, not fmt
 type Printer interface {
 	Print(a ...interface{})
+}
+
+// Values for Options.LoadDefault
+const (
+	MIT = iota
+	Heimdal
+)
+
+type Options struct {
+	// if LibPath != "", use it as is. Otherwise construct the library
+	// name based on LoadDefault, and the current OS
+	LibPath     string
+	LoadDefault int
+
+	// Set Printer if you want gssapi to log to it
+	Printer
 }
 
 // ftable fields will be initialized to the corresponding function pointers from the
@@ -89,63 +103,46 @@ type Lib struct {
 }
 
 const (
-	ENVVAR_GSSAPILIB          = "APC_GSSAPI_LIB"
-	GSSAPILIB_DEFAULT_MIT     = "libgssapi_krb5"
-	GSSAPILIB_DEFAULT_HEIMDAL = "libgssapi"
-
 	fpPrefix = "Fp_"
 )
 
-func LibPath(path string, useHeimdal bool, useMIT bool) string {
+func (o *Options) libPath() string {
 	switch {
-	case path != "" && !useMIT && !useHeimdal:
-		return path
+	case o.LibPath != "":
+		return o.LibPath
 
-	case path == "" && useMIT && !useHeimdal:
-		return appendExt(GSSAPILIB_DEFAULT_MIT)
+	case o.LoadDefault == MIT:
+		return appendOSExt("libgssapi_krb5")
 
-	case path == "" && !useMIT && useHeimdal:
-		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL)
-
-	case path == "" && runtime.GOOS == "freebsd":
-		return appendExt(GSSAPILIB_DEFAULT_HEIMDAL)
-
-	case path == "" && !useMIT && !useHeimdal:
-		if envLib := os.Getenv(ENVVAR_GSSAPILIB); envLib != "" {
-			return envLib
-		}
-		return appendExt(GSSAPILIB_DEFAULT_MIT)
+	case o.LoadDefault == Heimdal:
+		return appendOSExt("libgssapi")
 	}
 	return ""
 }
 
-func LoadDefaultLib() (*Lib, error) {
-	lib, err := LoadLib(LibPath("", false, false))
-	if err != nil {
-		return nil, err
+func LoadLib(o *Options) (*Lib, error) {
+	if o == nil {
+		o = &Options{}
 	}
 
-	lib.Printer = log.New(os.Stderr, "gssapi", log.LstdFlags)
-
-	return lib, nil
-}
-
-func LoadLib(path string) (*Lib, error) {
 	// We get the error in a separate call, so we need to lock OS thread
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	lib_cs := C.CString(path)
-	defer C.free(unsafe.Pointer(lib_cs))
-	// we don't use RTLD_FIRST, it might be the case that the GSSAPI lib
-	// delegates symbols to other libs it links against (eg, Kerberos)
-	dlhandle := C.dlopen(lib_cs, C.RTLD_NOW|C.RTLD_LOCAL)
-	if dlhandle == nil {
-		return nil, fmt.Errorf("%s", C.GoString(C.dlerror()))
+	lib := &Lib{
+		Printer: o.Printer,
 	}
 
-	lib := &Lib{
-		handle: dlhandle,
+	path := o.libPath()
+	lib.Print(fmt.Sprintf("Loading %q", path))
+	lib_cs := C.CString(path)
+	defer C.free(unsafe.Pointer(lib_cs))
+
+	// we don't use RTLD_FIRST, it might be the case that the GSSAPI lib
+	// delegates symbols to other libs it links against (eg, Kerberos)
+	lib.handle = C.dlopen(lib_cs, C.RTLD_NOW|C.RTLD_LOCAL)
+	if lib.handle == nil {
+		return nil, fmt.Errorf("%s", C.GoString(C.dlerror()))
 	}
 
 	err := lib.populateFunctions()
@@ -162,7 +159,6 @@ func (lib *Lib) Unload() error {
 		return nil
 	}
 
-	//TODO: is runtime.LockOSThread needed here?
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -175,7 +171,7 @@ func (lib *Lib) Unload() error {
 	return nil
 }
 
-func appendExt(path string) string {
+func appendOSExt(path string) string {
 	ext := ".so"
 	if runtime.GOOS == "darwin" {
 		ext = ".dylib"
@@ -186,6 +182,7 @@ func appendExt(path string) string {
 	return path
 }
 
+// Assumes that the caller executes runtime.LockOSThread
 func (lib *Lib) populateFunctions() error {
 	libT := reflect.TypeOf(lib.ftable)
 	functionsV := reflect.ValueOf(lib).Elem().FieldByName("ftable")

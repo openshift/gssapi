@@ -21,23 +21,23 @@ type Context struct {
 var c = &Context{}
 
 func init() {
-	flag.StringVar(&c.ServiceName, "service-name", "SampleService", "[C,S] service name")
-	flag.StringVar(&c.ServiceAddress, "service-address", ":8080", "[C,S] service address hostname:port")
-	flag.StringVar(&c.RequestPath, "request", "/", "[C,S] test path to use")
-	flag.StringVar(&c.Krb5Config, "krb5-config", "", "[C,S] path to krb5.config file")
-	flag.BoolVar(&c.LibPathMIT, "gssapi-mit", false, "[C,S] use the default MIT library path (libgssapi_krb5.so)")
-	flag.BoolVar(&c.LibPathHeimdal, "gssapi-heimdal", false, "[C,S] use the default Heimdal library path (libgssapi.so)")
-	flag.StringVar(&c.LibPath, "gssapi-path", "", "[C,S] use the specified path to libgssapi.so")
+	flag.StringVar(&c.ServiceName, "service-name", "SampleService", "service name")
+	flag.StringVar(&c.ServiceAddress, "service-address", ":8080", "service address hostname:port")
+	flag.StringVar(&c.RequestPath, "request", "/", "test path to use")
+	flag.StringVar(&c.Krb5Config, "krb5-config", "", "path to krb5.config file")
+	flag.StringVar(&c.LibPath, "gssapi-path", "", "use the specified path to libgssapi shared object")
 }
 
 func loadlib(tb testing.TB, verbose bool) *gssapi.Lib {
-	lib, err := gssapi.LoadLib(gssapi.LibPath(
-		c.LibPath, c.LibPathMIT, c.LibPathHeimdal))
-	if err != nil {
-		tb.Fatal(err)
+	o := &gssapi.Options{
+		LibPath: c.LibPath,
 	}
 	if verbose {
-		lib.Printer = log.New(os.Stderr, "gssapi-sample: ", log.LstdFlags)
+		o.Printer = log.New(os.Stderr, "gssapi-sample: ", log.LstdFlags)
+	}
+	lib, err := gssapi.LoadLib(o)
+	if err != nil {
+		tb.Fatal(err)
 	}
 	return lib
 }

@@ -29,6 +29,10 @@ function cleanup_containers() {
 }
 
 function cleanup() {
+        set +e
+        print "Service logs:"
+        $DOCKER logs service 2>&1
+
 	cleanup_containers
 
 	print "Clean up build directory"
@@ -105,17 +109,17 @@ if [[ "${OSTYPE}" == "darwin"* ]]; then
         ${DOCKER_DIR}/client/entrypoint.sh
 else
         build_image "client" "unless exists" "" >/dev/null
-        set +e
+        #set +e
         run_image "client" \
                 "--link=service:service \
                 --link=kdc:kdc \
                 --volume $TEST_DIR/gssapi:/opt/go/src/github.com/apcera/gssapi" \
                 >/dev/null
-        if [[ "$?" != "0" ]]; then
-                print "Client failed, see service logs below:\n\n"
-                $DOCKER logs service 2>&1
-                exit 1
-        fi
-        set -e
+        #if [[ "$?" != "0" ]]; then
+        #        print "Client failed, see service logs below:\n\n"
+        #        $DOCKER logs service 2>&1
+        #        exit 1
+        #fi
+        #set -e
 fi
 echo "TEST PASSED"
