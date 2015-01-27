@@ -43,7 +43,9 @@ func loadlib(tb testing.TB, verbose bool) *gssapi.Lib {
 }
 
 func TestMain(m *testing.M) {
-	//flag.Parse()
+	if testing.Verbose() {
+		log.Printf("gssapi-sample: Config:\n%#v", c)
+	}
 
 	if c.Krb5Config != "" {
 		err := os.Setenv("KRB5_CONFIG", c.Krb5Config)

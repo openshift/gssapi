@@ -4,11 +4,6 @@
 
 package gssapi
 
-//#cgo LDFLAGS: -L/opt/local/lib -Wl,-search_paths_first -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err
-//import "C"
-// Uncomment the above line to directly link against the libraries, to avoid
-// the dlopen layer.
-
 /*
 #cgo linux LDFLAGS: -ldl
 
