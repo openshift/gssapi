@@ -16,12 +16,12 @@ else
 fi
 
 function print() {
-	>&2 echo "apcera/go-gssapi-test: $*"
+	>&2 echo "go-gssapi-test: $*"
 }
 
 function cleanup_containers() {
 	print "Clean up running containers"
-	running=`$DOCKER ps --all | grep 'apcera/go-gssapi-test' | awk '{print $1}'`
+	running=`$DOCKER ps --all | grep 'go-gssapi-test' | awk '{print $1}'`
 	if [[ "$running" != "" ]]; then
 		echo $running | xargs $DOCKER stop >/dev/null
 		echo $running | xargs $DOCKER rm >/dev/null
@@ -31,7 +31,7 @@ function cleanup_containers() {
 function cleanup() {
         set +e
         print "Service logs:"
-        $DOCKER logs service 2>&1
+        $DOCKER logs service 2>&1 | egrep -v "gssapi-sample:\t[0-9 /:]+ ACCESS "
 
 	cleanup_containers
 
@@ -43,7 +43,7 @@ function build_image() {
 	comp=$1
 	check=$2
 	func=$3
-	img="apcera/go-gssapi-test-${comp}"
+	img="go-gssapi-test-${comp}"
 	image=$($DOCKER images --quiet ${img})
 
 	if [[ "$check" == "" || "$image" == "" ]]; then
@@ -64,7 +64,7 @@ function build_image() {
 function run_image() {
 	comp=$1
 	options=$2
-	img="apcera/go-gssapi-test-${comp}"
+	img="go-gssapi-test-${comp}"
 	print "Run docker image ${img}"
 	options="${options} --hostname=${comp} --name=${comp}"
 	$DOCKER run -P ${options} ${img}
@@ -109,17 +109,10 @@ if [[ "${OSTYPE}" == "darwin"* ]]; then
         ${DOCKER_DIR}/client/entrypoint.sh
 else
         build_image "client" "unless exists" "" >/dev/null
-        #set +e
         run_image "client" \
                 "--link=service:service \
                 --link=kdc:kdc \
                 --volume $TEST_DIR/gssapi:/opt/go/src/github.com/apcera/gssapi" \
                 >/dev/null
-        #if [[ "$?" != "0" ]]; then
-        #        print "Client failed, see service logs below:\n\n"
-        #        $DOCKER logs service 2>&1
-        #        exit 1
-        #fi
-        #set -e
 fi
 echo "TEST PASSED"

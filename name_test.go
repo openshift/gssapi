@@ -15,9 +15,9 @@ func TestNameImportExport(t *testing.T) {
 	defer l.Unload()
 
 	names := []string{
-		`test@corp.apcera.com`,
-		`test@corp.ApCera.com`,
-		`test@CORP.APCERA.COM`,
+		`test@corp.example.com`,
+		`test@corp.ExAmple.com`,
+		`test@CORP.EXAMPLE.COM`,
 	}
 
 	makeName := func(n string) (name *Name) {

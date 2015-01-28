@@ -30,19 +30,18 @@ func init() {
 }
 
 func main() {
-	var err error
 	flag.Parse()
 	logger := log.New(os.Stderr, "gssapi-sample:\t", log.LstdFlags)
 
 	if c.Krb5Config != "" {
-		err = os.Setenv("KRB5_CONFIG", c.Krb5Config)
+		err := os.Setenv("KRB5_CONFIG", c.Krb5Config)
 		if err != nil {
 			logger.Fatal(err)
 		}
 	}
 
 	if c.Krb5Ktname != "" {
-		err = os.Setenv("KRB5_KTNAME", c.Krb5Ktname)
+		err := os.Setenv("KRB5_KTNAME", c.Krb5Ktname)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -52,6 +51,7 @@ func main() {
 		LibPath: c.LibPath,
 		Printer: logger,
 	}
+	var err error
 	c.Lib, err = gssapi.LoadLib(o)
 	if err != nil {
 		logger.Fatal(err)

@@ -39,7 +39,7 @@ done
 $TEST_DIR/client.test \
 	--test.bench=. \
 	--test.v=false \
-	--test.benchtime=5s \
+	--test.benchtime=2s \
 	--service-name=HTTP/service.s.gogssapi.com@TEST.GOGSSAPI.COM \
 	--service-address=$SERVICE_PORT_80_TCP_ADDR:$SERVICE_PORT_80_TCP_PORT \
 	--krb5-config=$KRB5_CONFIG \

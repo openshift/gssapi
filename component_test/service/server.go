@@ -40,7 +40,7 @@ func Server(c *Context) error {
 		pass, err := filter(c, cred, w, r)
 		if err != nil {
 			//TODO: differentiate invalid tokens here and return a 403
-			c.Print(fmt.Sprintf("%d %q %q %q",
+			c.Print(fmt.Sprintf("ACCESS %d %q %q %q",
 				http.StatusInternalServerError,
 				r.Method,
 				r.URL.String(), err))
@@ -48,7 +48,7 @@ func Server(c *Context) error {
 			return
 		}
 		if !pass {
-			c.Print(fmt.Sprintf(`%d %q %q "no input token provided"`,
+			c.Print(fmt.Sprintf(`ACCESS %d %q %q "no input token provided"`,
 				http.StatusUnauthorized,
 				r.Method,
 				r.URL.String()))
@@ -56,7 +56,7 @@ func Server(c *Context) error {
 			return
 		}
 		w.Write([]byte("Hello!"))
-		c.Print(fmt.Sprintf("%d %q %q", http.StatusOK, r.Method, r.URL.String()))
+		c.Print(fmt.Sprintf("ACCESS %d %q %q", http.StatusOK, r.Method, r.URL.String()))
 	})
 
 	err = http.ListenAndServe(c.ServiceAddress, nil)
