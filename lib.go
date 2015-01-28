@@ -106,7 +106,7 @@ const (
 	fpPrefix = "Fp_"
 )
 
-func (o *Options) libPath() string {
+func (o *Options) LibPath() string {
 	switch {
 	case o.LibPath != "":
 		return o.LibPath
@@ -133,7 +133,7 @@ func LoadLib(o *Options) (*Lib, error) {
 		Printer: o.Printer,
 	}
 
-	path := o.libPath()
+	path := o.LibPath()
 	lib.Print(fmt.Sprintf("Loading %q", path))
 	lib_cs := C.CString(path)
 	defer C.free(unsafe.Pointer(lib_cs))
