@@ -8,16 +8,16 @@ import (
 
 // Tests importing exporting names
 func TestNameImportExport(t *testing.T) {
-	l, err := LoadDefaultLib()
+	l, err := LoadLib(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer l.Unload()
 
 	names := []string{
-		`test@corp.apcera.com`,
-		`test@corp.ApCera.com`,
-		`test@CORP.APCERA.COM`,
+		`test@corp.example.com`,
+		`test@corp.ExAmple.com`,
+		`test@CORP.EXAMPLE.COM`,
 	}
 
 	makeName := func(n string) (name *Name) {
