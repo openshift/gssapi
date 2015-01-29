@@ -13,9 +13,12 @@ package gssapi
 // us a functioning type; it's a pointer, at the ABI level the typing doesn't matter,
 // so once we compile we're good.  If modern (correct) headers are available in other
 // locations, just add them to the search path for the relevant OS below.
+//
+// Using "MacPorts" on MacOS gives us: -I/opt/local/include
+// Using "brew" on MacOS gives us: -I/usr/local/opt/heimdal/include
 
 /*
-#cgo darwin CFLAGS: -I/opt/local/include
+#cgo darwin CFLAGS: -I/opt/local/include -I/usr/local/opt/heimdal/include
 #include <gssapi.h>
 #include <stdio.h>
 
