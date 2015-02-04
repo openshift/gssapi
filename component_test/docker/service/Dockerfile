@@ -10,7 +10,8 @@ RUN apt-get -y install \
 RUN (cd /tmp && wget https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz && tar xvf go1.4.1.linux-amd64.tar.gz && mv go/ /opt)
 ENV GOROOT="/opt/go"
 ADD krb5.keytab /opt/go-gssapi-test-service/krb5.keytab
-ADD krb5.conf.template /opt/go-gssapi-test-service/krb5.conf.template
+ADD krb5.conf.template /tmp/krb5.conf.template
 ADD entrypoint.sh /opt/go-gssapi-test-service/entrypoint.sh
+
 EXPOSE 80
 ENTRYPOINT /opt/go-gssapi-test-service/entrypoint.sh

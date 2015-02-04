@@ -31,7 +31,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	logger := log.New(os.Stderr, "gssapi-sample:\t", log.LstdFlags)
+	logger := log.New(os.Stderr, "go-gssapi-test-service:\t", log.LstdFlags)
 
 	if c.Krb5Config != "" {
 		err := os.Setenv("KRB5_CONFIG", c.Krb5Config)

@@ -1,12 +1,13 @@
 [libdefaults]
-        default_realm = TEST.GOGSSAPI.COM
+        default_realm = REALM_NAME
         noaddresses = true
 
 [realms]
-        TEST.GOGSSAPI.COM = {
+        REALM_NAME = {
+		# will be replaced by the script
                 kdc = KDC_ADDRESS
         }
 
 [domain_realm]
-        s.gogssapi.com = TEST.GOGSSAPI.COM
-        .s.gogssapi.com = TEST.GOGSSAPI.COM
+        DOMAIN_NAME = REALM_NAME
+        .DOMAIN_NAME = REALM_NAME
