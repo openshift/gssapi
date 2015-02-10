@@ -84,7 +84,6 @@ type ftable struct {
 	// buffer.go
 	Fp_gss_release_buffer unsafe.Pointer
 	Fp_gss_import_name    unsafe.Pointer
-	Fp_gss_str_to_oid     unsafe.Pointer
 
 	// context.go
 	Fp_gss_init_sec_context      unsafe.Pointer
@@ -113,10 +112,6 @@ type ftable struct {
 	Fp_gss_inquire_mechs_for_name unsafe.Pointer
 	Fp_gss_inquire_names_for_mech unsafe.Pointer
 	Fp_gss_release_name           unsafe.Pointer
-
-	// oid.go
-	// Fp_gss_oid_equal  unsafe.Pointer
-	Fp_gss_oid_to_str unsafe.Pointer
 
 	// oid_set.go
 	Fp_gss_create_empty_oid_set unsafe.Pointer

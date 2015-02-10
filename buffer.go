@@ -34,19 +34,6 @@ wrap_gss_import_name(void *fp,
 			output_name);
 }
 
-OM_uint32
-wrap_gss_str_to_oid(void *fp,
-	OM_uint32 *minor_status,
-	gss_buffer_t oid_str,
-	gss_OID *oid)
-{
-	return ((OM_uint32(*) (
-		OM_uint32 *,
-		gss_buffer_t,
-		gss_OID*)) fp)(
-			minor_status, oid_str, oid);
-}
-
 int
 wrap_gss_buffer_equal(
 	gss_buffer_t b1,
@@ -160,27 +147,6 @@ func (b Buffer) Name(nametype *OID) (*Name, error) {
 		Lib:          b.Lib,
 		C_gss_name_t: result,
 	}, nil
-}
-
-// OID converts the buffer to an OID. Note that the OID is allocated by the C
-// code, The only way to release the memory is to add it to an OIDSet, and then
-// Release the entire OIDSet
-func (b *Buffer) OID() (oid *OID, err error) {
-	var min C.OM_uint32
-
-	oid = &OID{
-		Lib: b.Lib,
-	}
-
-	maj := C.wrap_gss_str_to_oid(b.Fp_gss_str_to_oid,
-		&min, b.C_gss_buffer_t, &oid.C_gss_OID)
-
-	err = b.MakeError(maj, min).GoError()
-	if err != nil {
-		return nil, err
-	}
-
-	return oid, nil
 }
 
 func (b *Buffer) Equal(other *Buffer) bool {
