@@ -38,14 +38,13 @@ cat $KRB5_CONFIG_TEMPLATE \
 
 echo ${USER_PASSWORD} | kinit -V ${USER_NAME}@${REALM_NAME} >/dev/null
 
-(cd $TEST_DIR && go test -c github.com/apcera/gssapi/component_test/client)
+(cd $TEST_DIR && go test -c -o test -tags 'clienttest' github.com/apcera/gssapi/test)
 
 # --test.bench=.
-#--test.benchtime=2s
-$TEST_DIR/client.test \
-	--test.v=false \
-	--service-name=$SERVICE_NAME \
+# --test.benchtime=2s
+$TEST_DIR/test \
+	--test.v=true \
+	--service-name=${SERVICE_NAME}@${REALM_NAME} \
 	--service-address=$SERVICE_PORT_80_TCP_ADDR:$SERVICE_PORT_80_TCP_PORT \
-	--krb5-config=$KRB5_CONFIG \
 	--gssapi-path=$GSSAPI_PATH \
         2>&1

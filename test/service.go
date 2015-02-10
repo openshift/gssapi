@@ -1,18 +1,19 @@
-package main
+package test
 
 import (
 	"fmt"
-	"github.com/apcera/gssapi"
 	"net/http"
 	"os"
+
+	"github.com/apcera/gssapi"
 )
 
-func Server(c *Context) error {
+func Service(c *Context) error {
 	if c.ServiceName == "" {
 		return fmt.Errorf("Must provide a non-empty value for --service-name")
 	}
 
-	c.Print(fmt.Sprintf("Starting service %q", c.ServiceName))
+	c.Debug(fmt.Sprintf("Starting service %q", c.ServiceName))
 
 	nameBuf := c.MakeBufferString(c.ServiceName)
 	defer nameBuf.Release()
@@ -34,13 +35,13 @@ func Server(c *Context) error {
 	if keytab == "" {
 		keytab = "default /etc/krb5.keytab"
 	}
-	c.Print(fmt.Sprintf("Acquired credentials using %v", keytab))
+	c.Debug(fmt.Sprintf("Acquired credentials using %v", keytab))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		pass, err := filter(c, cred, w, r)
 		if err != nil {
 			//TODO: differentiate invalid tokens here and return a 403
-			c.Print(fmt.Sprintf("ACCESS %d %q %q %q",
+			c.Err(fmt.Sprintf("ACCESS %d %q %q %q",
 				http.StatusInternalServerError,
 				r.Method,
 				r.URL.String(), err))
@@ -48,7 +49,7 @@ func Server(c *Context) error {
 			return
 		}
 		if !pass {
-			c.Print(fmt.Sprintf(`ACCESS %d %q %q "no input token provided"`,
+			c.Warn(fmt.Sprintf(`ACCESS %d %q %q "no input token provided"`,
 				http.StatusUnauthorized,
 				r.Method,
 				r.URL.String()))
@@ -56,7 +57,7 @@ func Server(c *Context) error {
 			return
 		}
 		w.Write([]byte("Hello!"))
-		c.Print(fmt.Sprintf("ACCESS %d %q %q", http.StatusOK, r.Method, r.URL.String()))
+		c.Info(fmt.Sprintf("ACCESS %d %q %q", http.StatusOK, r.Method, r.URL.String()))
 	})
 
 	err = http.ListenAndServe(c.ServiceAddress, nil)

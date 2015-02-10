@@ -8,7 +8,7 @@ import (
 
 // Tests importing exporting names
 func TestNameImportExport(t *testing.T) {
-	l, err := LoadLib(nil)
+	l, err := testLoad()
 	if err != nil {
 		t.Fatal(err)
 	}

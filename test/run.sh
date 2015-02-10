@@ -5,7 +5,7 @@ BASE_DIR=$(cd .. && pwd)
 export TEST_DIR="$HOME/tmp/$(uuidgen)"
 mkdir -p $TEST_DIR
 cp -R $BASE_DIR $TEST_DIR
-DOCKER_DIR=$TEST_DIR/gssapi/component_test/docker
+DOCKER_DIR=$TEST_DIR/gssapi/test/docker
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
         DOCKER=docker
@@ -29,18 +29,20 @@ function cleanup_containers() {
 function cleanup() {
         set +e
 
-        log "
-        
-kdc logs:"
-        $DOCKER logs kdc 2>&1 
+        if [[ "${EXT_KDC_HOST}" == "" ]]; then
+                log "kdc logs:
 
-        log "
-        
-service logs:"
+"
+                $DOCKER logs kdc 2>&1
+        fi
+
+        log "service logs:
+
+"
         if [[ "$SERVICE_LOG_FILTER" != "" ]]; then
                 $DOCKER logs service 2>&1 | egrep -v "gssapi-sample:\t[0-9 /:]+ ACCESS "
         else
-                $DOCKER logs service 2>&1 
+                $DOCKER logs service 2>&1
         fi
 
 	cleanup_containers
@@ -101,34 +103,45 @@ function map_ports() {
         export ${COMP}_PORT_${port}_TCP_PORT=$(docker port ${comp} ${port} | cut -f2 -d ':')
 }
 
+function wait_until_available() {
+        comp=$1
+        addr=$2
+        port=$3
+
+        i=1
+        while ! echo exit | nc $addr $port >/dev/null; do
+                echo "Waiting for $comp to start"
+                sleep 1
+                i=`expr $i + 1`
+                if [[ $i -gt 10 ]]; then
+                       echo "Timed out waiting for ${comp} to start at ${addr}:${port}"
+                       exit 1
+                fi
+        done
+}
 
 # Cleanup
 trap 'cleanup' INT TERM EXIT
-
 cleanup_containers
 
+env_suffix=$(/bin/echo "${REALM_NAME}-${SERVICE_NAME}" | shasum | cut -f1 -d ' ')
 
 # KDC
-if [[ "${EXT_KDC_IP}" == "" ]]; then
+if [[ "${EXT_KDC_HOST}" == "" ]]; then
         cat $DOCKER_DIR/kdc/krb5.conf.template \
                 | sed -e "s/KDC_ADDRESS/0.0.0.0:88/g" \
                 | sed -e "s/DOMAIN_NAME/${DOMAIN_NAME}/g" \
                 | sed -e "s/REALM_NAME/${REALM_NAME}/g" \
                 > $DOCKER_DIR/kdc/krb5.conf
 
-        suffix=$(/bin/echo ${REALM_NAME} | shasum | cut -f1 -d ' ')
-        build_image "kdc" "kdc-${suffix}" "" >/dev/null
-        run_image "kdc" "kdc-${suffix}" "--detach" >/dev/null
+        build_image "kdc" "kdc-${env_suffix}" "" >/dev/null
+        run_image "kdc" "kdc-${env_suffix}" "--detach" >/dev/null
         map_ports "kdc" 88
 else
-        export KDC_PORT_88_TCP_ADDR=${EXT_KDC_IP}
+        export KDC_PORT_88_TCP_ADDR=${EXT_KDC_HOST}
         export KDC_PORT_88_TCP_PORT=${EXT_KDC_PORT}
 fi
-
-while ! echo exit | nc $KDC_PORT_88_TCP_ADDR $KDC_PORT_88_TCP_PORT >/dev/null; do
-        echo "Waiting for kdc to start"
-        sleep 1
-done
+wait_until_available "kdc" $KDC_PORT_88_TCP_ADDR $KDC_PORT_88_TCP_PORT
 
 function keytab_from_kdc() {
         $DOCKER cp kdc:/etc/docker-kdc/krb5.keytab $DOCKER_DIR/service
@@ -138,11 +151,11 @@ function keytab_from_options() {
         cp ${KEYTAB_FILE} $DOCKER_DIR/service/krb5.keytab
 }
 
-if [[ "${EXT_KDC_IP}" == "" ]]; then
+if [[ "${EXT_KDC_HOST}" == "" ]]; then
         DOCKER_KDC_OPTS='--link=kdc:kdc'
         KEYTAB_FUNCTION='keytab_from_kdc'
 else
-        DOCKER_KDC_OPTS="--env KDC_PORT_88_TCP_ADDR=${EXT_KDC_IP} \
+        DOCKER_KDC_OPTS="--env KDC_PORT_88_TCP_ADDR=${EXT_KDC_HOST} \
                 --env KDC_PORT_88_TCP_PORT=${EXT_KDC_PORT}"
         KEYTAB_FUNCTION='keytab_from_options'
 fi
@@ -151,18 +164,14 @@ fi
 log "Build and unit-test gssapi on host"
 go test github.com/apcera/gssapi
 
-build_image "service" "service" "$KEYTAB_FUNCTION" >/dev/null
+build_image "service" "service-${env_suffix}" "$KEYTAB_FUNCTION" >/dev/null
 run_image "service" \
-        "service" \
+        "service-${env_suffix}" \
         "--detach \
         $DOCKER_KDC_OPTS \
         --volume $TEST_DIR/gssapi:/opt/go/src/github.com/apcera/gssapi" >/dev/null
 map_ports "service" 80
-
-while ! echo exit | nc $SERVICE_PORT_80_TCP_ADDR $SERVICE_PORT_80_TCP_PORT >/dev/null; do
-        echo "Waiting for service to start"
-        sleep 1
-done
+wait_until_available "service" $SERVICE_PORT_80_TCP_ADDR $SERVICE_PORT_80_TCP_PORT
 
 # GSSAPI client
 if [[ "$OSTYPE" != "darwin"* || "$CLIENT_IN_CONTAINER" != "" ]]; then

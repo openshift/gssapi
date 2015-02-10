@@ -1,0 +1,39 @@
+//+build servicetest
+
+package test
+
+// test the credentials APIs with a keytab, configured against a real KDC
+
+import (
+	"testing"
+
+	"github.com/apcera/gssapi"
+)
+
+// Assumes that the keytab is
+func TestCredential(t *testing.T) {
+	if !c.RunAsService {
+		t.Skip()
+	}
+
+	if c.ServiceName == "" {
+		t.Fatal("Need a --service-name")
+	}
+
+	nameBuf := c.MakeBufferString(c.ServiceName)
+	defer nameBuf.Release()
+
+	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME())
+	defer name.Release()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, actualMechs, _, err := c.AcquireCred(name,
+		gssapi.GSS_C_INDEFINITE, c.GSS_C_NO_OID_SET(), gssapi.GSS_C_ACCEPT)
+	defer cred.Release()
+	defer actualMechs.Release()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
