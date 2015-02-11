@@ -1,5 +1,7 @@
 #!/bin/bash -eu
 
+# Copyright 2013-2015 Apcera Inc. All rights reserved.
+
 REUSE_DOCKER_IMAGES="1" \
 SERVICE_LOG_FILTER="true" \
 EXT_KDC_HOST="" \

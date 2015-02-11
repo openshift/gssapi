@@ -1,5 +1,9 @@
 #!/bin/bash -eu
 
+# Copyright 2013-2015 Apcera Inc. All rights reserved.
+
+result="NOT OK FAILED"
+
 # boot2docker doesn't seem to like /tmp so use the home direcotry for the build
 BASE_DIR=$(cd .. && pwd)
 export TEST_DIR="$HOME/tmp/$(uuidgen)"
@@ -49,6 +53,8 @@ function cleanup() {
 
 	log "Clean up build directory"
 	rm -rf $TEST_DIR
+
+        log $result
 }
 
 function build_image() {
@@ -194,4 +200,5 @@ else
                 USER_PASSWORD=${USER_PASSWORD} \
                 ${DOCKER_DIR}/client/entrypoint.sh
 fi
-echo "OK TEST PASSED"
+
+result="OK TEST PASSED"

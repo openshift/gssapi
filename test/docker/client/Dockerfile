@@ -1,3 +1,5 @@
+# Copyright 2013-2015 Apcera Inc. All rights reserved.
+
 FROM ubuntu:14.04
 RUN apt-get -y update
 RUN apt-get -y install \

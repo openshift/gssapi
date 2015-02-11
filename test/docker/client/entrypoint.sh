@@ -1,5 +1,7 @@
 #!/bin/bash -eu
 
+# Copyright 2013-2015 Apcera Inc. All rights reserved.
+
 # This script is used in the context of a docker VM when runnning the linux
 # client test, and in the context of OS X when running on the Macintosh.  The
 # following variables must be set (either via --link or explicitely)

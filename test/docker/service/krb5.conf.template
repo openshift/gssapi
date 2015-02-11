@@ -1,10 +1,11 @@
+# REALM_NAME, KDC_ADDRESS, and DOMAIN_NAME will be replaced by the script
+
 [libdefaults]
         default_realm = REALM_NAME
         noaddresses = true
 
 [realms]
         REALM_NAME = {
-		# will be replaced by the script
                 kdc = KDC_ADDRESS
         }
 
