@@ -100,7 +100,7 @@ function map_ports() {
         else
                 export ${COMP}_PORT_${port}_TCP_ADDR=127.0.0.1
         fi
-        export ${COMP}_PORT_${port}_TCP_PORT=$(docker port ${comp} ${port} | cut -f2 -d ':')
+        export ${COMP}_PORT_${port}_TCP_PORT=$($DOCKER port ${comp} ${port} | cut -f2 -d ':')
 }
 
 function wait_until_available() {
