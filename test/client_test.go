@@ -1,4 +1,8 @@
-package client
+// Copyright 2013-2015 Apcera Inc. All rights reserved.
+
+// +build clienttest
+
+package test
 
 import (
 	"fmt"
@@ -10,7 +14,7 @@ import (
 
 func TestLoadAndRequest(t *testing.T) {
 	ch := make(chan error, 1)
-	oneRequest(t, ch, testing.Verbose())
+	oneRequest(t, ch, c.DebugLog)
 	err := <-ch
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +42,10 @@ func oneRequest(tb testing.TB, ch chan error, verbose bool) {
 		ch <- err
 	}()
 
-	lib := loadlib(tb, verbose)
+	lib, err := loadlib(verbose)
+	if err != nil {
+		tb.Fatal(err)
+	}
 	defer lib.Unload()
 
 	transport, err := lib.NewSPNEGOTransport(c.ServiceName)
@@ -50,11 +57,11 @@ func oneRequest(tb testing.TB, ch chan error, verbose bool) {
 		Transport: transport,
 	}
 
-	u := c.ServiceAddress + c.RequestPath
+	u := c.ServiceAddress + "/" // c.RequestPath
 	if !strings.HasPrefix(u, "http://") {
 		u = "http://" + u
 	}
-	lib.Print("CLIENT WANTS: GET ", u)
+	lib.Debug("CLIENT WANTS: GET ", u)
 
 	resp, err := client.Get(u)
 	if err != nil {
@@ -66,7 +73,7 @@ func oneRequest(tb testing.TB, ch chan error, verbose bool) {
 	if err != nil {
 		return
 	}
-	lib.Print("<- CLIENT RECEIVED:\n", string(out), "\n")
+	lib.Debug("<- CLIENT RECEIVED:\n", string(out), "\n")
 
 	if resp.StatusCode != http.StatusOK || !strings.Contains(string(out), "Hello!") {
 		err = fmt.Errorf("Test failed: unexpected response: code:%v, body:\n%s", resp.StatusCode, string(out))

@@ -1,4 +1,6 @@
-#!/bin/sh -eu
+#!/bin/bash -eu
+
+# Copyright 2013-2015 Apcera Inc. All rights reserved.
 
 # This script is used in the context of a docker VM when runnning the linux
 # client test, and in the context of OS X when running on the Macintosh.  The
@@ -21,27 +23,30 @@
 #
 #       TEST_DIR
 #               The directory to build the client test app in
+#
+#       SERVICE_NAME
+#       REALM_NAME
+#       DOMAIN_NAME
+#       USER_NAME
+#       USER_PASSWORD
 
 export PATH=$PATH:$GOROOT/bin
 
-sed -e "s/KDC_ADDRESS/$KDC_PORT_88_TCP_ADDR:$KDC_PORT_88_TCP_PORT/g" \
-	$KRB5_CONFIG_TEMPLATE > $KRB5_CONFIG
+cat $KRB5_CONFIG_TEMPLATE \
+        | sed -e "s/KDC_ADDRESS/$KDC_PORT_88_TCP_ADDR:$KDC_PORT_88_TCP_PORT/g" \
+        | sed -e "s/DOMAIN_NAME/${DOMAIN_NAME}/g" \
+        | sed -e "s/REALM_NAME/${REALM_NAME}/g" \
+	> $KRB5_CONFIG
 
-echo P@ssword! | kinit client.user@TEST.GOGSSAPI.COM >/dev/null
+echo ${USER_PASSWORD} | kinit -V ${USER_NAME}@${REALM_NAME} >/dev/null
 
-(cd $TEST_DIR && go test -c github.com/apcera/gssapi/component_test/client)
+(cd $TEST_DIR && go test -c -o test -tags 'clienttest' github.com/apcera/gssapi/test)
 
-while ! echo exit | nc $SERVICE_PORT_80_TCP_ADDR $SERVICE_PORT_80_TCP_PORT >/dev/null; do
-        echo "Waiting for service to start"
-        sleep 1
-done
-
-$TEST_DIR/client.test \
-	--test.bench=. \
-	--test.v=false \
-	--test.benchtime=2s \
-	--service-name=HTTP/service.s.gogssapi.com@TEST.GOGSSAPI.COM \
+# --test.bench=.
+# --test.benchtime=2s
+$TEST_DIR/test \
+	--test.v=true \
+	--service-name=${SERVICE_NAME}@${REALM_NAME} \
 	--service-address=$SERVICE_PORT_80_TCP_ADDR:$SERVICE_PORT_80_TCP_PORT \
-	--krb5-config=$KRB5_CONFIG \
 	--gssapi-path=$GSSAPI_PATH \
         2>&1

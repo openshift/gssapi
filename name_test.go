@@ -8,7 +8,7 @@ import (
 
 // Tests importing exporting names
 func TestNameImportExport(t *testing.T) {
-	l, err := LoadLib(nil)
+	l, err := testLoad()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,10 +51,7 @@ func TestNameImportExport(t *testing.T) {
 	}
 
 	// This OID seems to be an avalable merch on linux
-	kerbOID, err := l.MakeBufferString("{ 1 2 840 113554 1 2 2 }\x00").OID()
-	if err != nil {
-		t.Fatalf("Got error %q, expected nil", err.Error())
-	}
+	kerbOID := l.MakeOIDBytes([]byte{'\x2a', '\x86', '\x48', '\x86', '\xf7', '\x12', '\x01', '\x02', '\x02'})
 
 	contains, err := mechs.Contains(kerbOID)
 	if err != nil {

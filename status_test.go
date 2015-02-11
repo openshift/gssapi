@@ -7,7 +7,7 @@ import (
 )
 
 func TestStatus(t *testing.T) {
-	l, err := LoadLib(nil)
+	l, err := testLoad()
 	if err != nil {
 		t.Error(err)
 		return

@@ -15,16 +15,12 @@ import "C"
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"unsafe"
 )
-
-// Printer matches the log package, not fmt
-type Printer interface {
-	Print(a ...interface{})
-}
 
 // Values for Options.LoadDefault
 const (
@@ -32,14 +28,53 @@ const (
 	Heimdal
 )
 
+type Severity uint
+
+// Values for Options.Log severity indices
+const (
+	Emerg = Severity(iota)
+	Alert
+	Crit
+	Err
+	Warn
+	Notice
+	Info
+	Debug
+	MaxSeverity
+)
+
+var severityNames = []string{
+	"Emerg",
+	"Alert",
+	"Crit",
+	"Err",
+	"Warn",
+	"Notice",
+	"Info",
+	"Debug",
+}
+
+func (s Severity) String() string {
+	if s >= MaxSeverity {
+		return ""
+	}
+	return severityNames[s]
+}
+
+// Printer matches the log package, not fmt
+type Printer interface {
+	Print(a ...interface{})
+}
+
 type Options struct {
 	// if LibPath != "", use it as is. Otherwise construct the library
 	// name based on LoadDefault, and the current OS
 	LibPath     string
+	Krb5Config  string
+	Krb5Ktname  string
 	LoadDefault int
 
-	// Set Printer if you want gssapi to log to it
-	Printer
+	Printers []Printer
 }
 
 // ftable fields will be initialized to the corresponding function pointers from the
@@ -49,7 +84,6 @@ type ftable struct {
 	// buffer.go
 	Fp_gss_release_buffer unsafe.Pointer
 	Fp_gss_import_name    unsafe.Pointer
-	Fp_gss_str_to_oid     unsafe.Pointer
 
 	// context.go
 	Fp_gss_init_sec_context      unsafe.Pointer
@@ -63,8 +97,11 @@ type ftable struct {
 	Fp_gss_import_sec_context    unsafe.Pointer
 
 	// credential.go
-	Fp_gss_acquire_cred unsafe.Pointer
-	Fp_gss_release_cred unsafe.Pointer
+	Fp_gss_acquire_cred         unsafe.Pointer
+	Fp_gss_add_cred             unsafe.Pointer
+	Fp_gss_inquire_cred         unsafe.Pointer
+	Fp_gss_inquire_cred_by_mech unsafe.Pointer
+	Fp_gss_release_cred         unsafe.Pointer
 
 	// name.go
 	Fp_gss_canonicalize_name      unsafe.Pointer
@@ -75,10 +112,6 @@ type ftable struct {
 	Fp_gss_inquire_mechs_for_name unsafe.Pointer
 	Fp_gss_inquire_names_for_mech unsafe.Pointer
 	Fp_gss_release_name           unsafe.Pointer
-
-	// oid.go
-	// Fp_gss_oid_equal  unsafe.Pointer
-	Fp_gss_oid_to_str unsafe.Pointer
 
 	// oid_set.go
 	Fp_gss_create_empty_oid_set unsafe.Pointer
@@ -95,7 +128,10 @@ type ftable struct {
 
 // Lib encapsulates both the GSSAPI and the library dlopen()'d for it.
 type Lib struct {
-	Printer
+
+	// Should contain a gssapi.Printer for each severity level to be
+	// logged, up to gssapi.MaxSeverity items
+	Printers []Printer
 
 	handle unsafe.Pointer
 
@@ -120,7 +156,7 @@ func (o *Options) Path() string {
 	return ""
 }
 
-func LoadLib(o *Options) (*Lib, error) {
+func Load(o *Options) (*Lib, error) {
 	if o == nil {
 		o = &Options{}
 	}
@@ -130,11 +166,25 @@ func LoadLib(o *Options) (*Lib, error) {
 	defer runtime.UnlockOSThread()
 
 	lib := &Lib{
-		Printer: o.Printer,
+		Printers: o.Printers,
+	}
+
+	if o.Krb5Config != "" {
+		err := os.Setenv("KRB5_CONFIG", o.Krb5Config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if o.Krb5Ktname != "" {
+		err := os.Setenv("KRB5_KTNAME", o.Krb5Ktname)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	path := o.Path()
-	lib.Print(fmt.Sprintf("Loading %q", path))
+	lib.Debug(fmt.Sprintf("Loading %q", path))
 	lib_cs := C.CString(path)
 	defer C.free(unsafe.Pointer(lib_cs))
 
@@ -213,9 +263,18 @@ func (lib *Lib) populateFunctions() error {
 	return nil
 }
 
-func (lib *Lib) Print(a ...interface{}) {
-	if lib == nil || lib.Printer == nil {
+func (lib *Lib) Print(level Severity, a ...interface{}) {
+	if lib == nil || lib.Printers == nil || level >= Severity(len(lib.Printers)) {
 		return
 	}
-	lib.Printer.Print(a...)
+	lib.Printers[level].Print(a...)
 }
+
+func (lib *Lib) Emerg(a ...interface{})  { lib.Print(Emerg, a...) }
+func (lib *Lib) Alert(a ...interface{})  { lib.Print(Alert, a...) }
+func (lib *Lib) Crit(a ...interface{})   { lib.Print(Crit, a...) }
+func (lib *Lib) Err(a ...interface{})    { lib.Print(Err, a...) }
+func (lib *Lib) Warn(a ...interface{})   { lib.Print(Warn, a...) }
+func (lib *Lib) Notice(a ...interface{}) { lib.Print(Notice, a...) }
+func (lib *Lib) Info(a ...interface{})   { lib.Print(Info, a...) }
+func (lib *Lib) Debug(a ...interface{})  { lib.Print(Debug, a...) }

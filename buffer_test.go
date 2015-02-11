@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewBuffer(t *testing.T) {
-	l, err := LoadLib(nil)
+	l, err := testLoad()
 	if err != nil {
 		t.Error(err)
 		return
@@ -38,7 +38,7 @@ func TestNewBuffer(t *testing.T) {
 
 // Also tests MakeBufferBytes, implicitly
 func TestMakeBufferString(t *testing.T) {
-	l, err := LoadLib(nil)
+	l, err := testLoad()
 	if err != nil {
 		t.Error(err)
 		return

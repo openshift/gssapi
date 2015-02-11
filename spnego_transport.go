@@ -34,7 +34,7 @@ func (lib *Lib) NewSPNEGOTransport(serviceName string) (*SPNEGOTransport, error)
 	}
 	t.serviceName = name
 
-	lib.Print("New SPNEGOTransport for ", t.serviceName)
+	lib.Debug("New SPNEGOTransport for ", t.serviceName)
 	return t, nil
 }
 
@@ -80,7 +80,7 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 			return nil, err
 		}
 		out, _ := httputil.DumpResponse(resp, true)
-		t.Print("<- SPNEGO RECEIVED:\n", string(out), "\n")
+		t.Debug("<- SPNEGO RECEIVED:\n", string(out), "\n")
 		resp.Body.Close()
 
 		if !negotiate {
@@ -120,7 +120,7 @@ func (t *SPNEGOTransport) doRoundTrip(req *http.Request, inputToken *Buffer) (
 	t.AddSPNEGONegotiate(req.Header, "Authorization", inputToken)
 
 	out, _ := httputil.DumpRequest(req, true)
-	t.Print("-> SPNEGO SEND:\n", string(out), "\n")
+	t.Debug("-> SPNEGO SEND:\n", string(out), "\n")
 
 	resp, err = t.RoundTripper.RoundTrip(req)
 	if err != nil {
