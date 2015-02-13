@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
+	_ "net/http/httputil"
 	"strings"
 )
 
