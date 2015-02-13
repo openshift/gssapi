@@ -137,48 +137,13 @@ func (lib *Lib) GSS_C_NO_NAME() *Name {
 	return lib.NewName()
 }
 
-// Name-Types.  These are standardized in the RFCs.  The library requires that
-// a given name be usable for resolution, but it's typically a macro, there's
-// no guarantee about the name exported from the library.  But since they're
-// static, and well-defined, we can just define them ourselves.
-
-// RFC2744-mandated values, mapping from as-near-as-possible to cut&paste
-func (lib *Lib) GSS_C_NT_USER_NAME() *OID {
-	return lib.MakeOIDString("\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01")
-}
-func (lib *Lib) GSS_C_NT_MACHINE_UID_NAME() *OID {
-	return lib.MakeOIDString("\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02")
-}
-func (lib *Lib) GSS_C_NT_STRING_UID_NAME() *OID {
-	return lib.MakeOIDString("\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03")
-}
-func (lib *Lib) GSS_C_NT_HOSTBASED_SERVICE_X() *OID {
-	return lib.MakeOIDString("\x2b\x06\x01\x05\x06\x02")
-}
-func (lib *Lib) GSS_C_NT_HOSTBASED_SERVICE() *OID {
-	return lib.MakeOIDString("\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04")
-}
-func (lib *Lib) GSS_C_NT_ANONYMOUS() *OID {
-	return lib.MakeOIDString("\x2b\x06\x01\x05\x06\x03") // original had \01
-}
-func (lib *Lib) GSS_C_NT_EXPORT_NAME() *OID {
-	return lib.MakeOIDString("\x2b\x06\x01\x05\x06\x04")
-}
-
-// from gssapi_krb5.h: This name form shall be represented by the Object
-// Identifier {iso(1) member-body(2) United States(840) mit(113554) infosys(1)
-// gssapi(2) krb5(2) krb5_name(1)}.  The recommended symbolic name for this
-// type is "GSS_KRB5_NT_PRINCIPAL_NAME".
-func (lib *Lib) GSS_KRB5_NT_PRINCIPAL_NAME() *OID {
-	return lib.MakeOIDString("\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01")
-}
-
 // Release frees the memory associated with an internal representation of the
 // name.
 func (n *Name) Release() error {
 	if n == nil || n.C_gss_name_t == nil {
 		return nil
 	}
+
 	var min C.OM_uint32
 	maj := C.wrap_gss_release_name(n.Fp_gss_release_name, &min, &n.C_gss_name_t)
 	err := n.MakeError(maj, min).GoError()
@@ -205,18 +170,24 @@ func (n Name) Equal(other Name) (equal bool, err error) {
 
 // Display "allows an application to obtain a textual representation of an
 // opaque internal-form name for display purposes"
-func (n Name) Display() (name string, oid C.gss_OID, err error) {
+func (n Name) Display() (name string, oid *OID, err error) {
 	var min C.OM_uint32
-	b := n.NewBuffer(true)
-
-	maj := C.wrap_gss_display_name(n.Fp_gss_display_name, &min,
-		n.C_gss_name_t, b.C_gss_buffer_t, &oid)
-
-	err = n.MakeError(maj, min).GoError()
-	if b.C_gss_buffer_t == nil {
+	b, err := n.MakeBuffer(allocGSSAPI)
+	if err != nil {
 		return "", nil, err
 	}
 	defer b.Release()
+
+	oid = n.NewOID()
+
+	maj := C.wrap_gss_display_name(n.Fp_gss_display_name, &min,
+		n.C_gss_name_t, b.C_gss_buffer_t, &oid.C_gss_OID)
+
+	err = n.MakeError(maj, min).GoError()
+	if err != nil {
+		oid.Release()
+		return "", nil, err
+	}
 
 	return b.String(), oid, err
 }
@@ -265,13 +236,17 @@ func (n *Name) Duplicate() (duplicate *Name, err error) {
 
 // Export makes a text (Buffer) version from an internal representation
 func (n *Name) Export() (b *Buffer, err error) {
-	b = n.NewBuffer(true)
+	b, err = n.MakeBuffer(allocGSSAPI)
+	if err != nil {
+		return nil, err
+	}
 
 	var min C.OM_uint32
 	maj := C.wrap_gss_export_name(n.Fp_gss_export_name, &min,
 		n.C_gss_name_t, b.C_gss_buffer_t)
 	err = n.MakeError(maj, min).GoError()
 	if err != nil {
+		b.Release()
 		return nil, err
 	}
 
@@ -297,19 +272,21 @@ func (n *Name) InquireMechs() (oids *OIDSet, err error) {
 	return oidset, nil
 }
 
-/*
-TODO: provide API for gss_inquire_mechs_for_name and gss_inquire_names_for_mech
+// InquireNameForMech returns the set of name types supported by
+// the specified mechanism
+func (lib *Lib) InquireNamesForMechs(mech *OID) (name_types *OIDSet, err error) {
+	oidset := lib.NewOIDSet()
+	if err != nil {
+		return nil, err
+	}
 
-OM_uint32
-wrap_gss_inquire_mechs_for_name(void *fp,
-	OM_uint32 *minor_status,
-	const gss_name_t input_name,
-	gss_OID_set *mech_types
+	var min C.OM_uint32
+	maj := C.wrap_gss_inquire_names_for_mech(lib.Fp_gss_inquire_mechs_for_name, &min,
+		mech.C_gss_OID, &oidset.C_gss_OID_set)
+	err = lib.MakeError(maj, min).GoError()
+	if err != nil {
+		return nil, err
+	}
 
-OM_uint32
-wrap_gss_inquire_names_for_mech(void *fp,
-	OM_uint32 *minor_status,
-	const gss_OID mechanism,
-	gss_OID_set * name_types
-
-*/
+	return oidset, nil
+}

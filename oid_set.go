@@ -57,7 +57,7 @@ wrap_gss_test_oid_set_member(void *fp,
 }
 
 gss_OID
-oid_set_member(
+get_oid_set_member(
 	gss_OID_set set,
 	int index)
 {
@@ -159,7 +159,7 @@ func (s *OIDSet) Get(index int) (oid *OID) {
 		panic(fmt.Errorf("index %d out of bounds", index))
 	}
 
-	return &OID{
-		C_gss_OID: C.oid_set_member(s.C_gss_OID_set, C.int(index)),
-	}
+	oid = s.NewOID()
+	oid.C_gss_OID = C.get_oid_set_member(s.C_gss_OID_set, C.int(index))
+	return oid
 }

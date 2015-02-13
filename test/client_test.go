@@ -42,7 +42,7 @@ func oneRequest(tb testing.TB, ch chan error, verbose bool) {
 		ch <- err
 	}()
 
-	lib, err := loadlib(verbose)
+	lib, err := loadlib(verbose, "go-gssapi-test-client")
 	if err != nil {
 		tb.Fatal(err)
 	}

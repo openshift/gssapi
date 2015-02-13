@@ -17,13 +17,17 @@ func Service(c *Context) error {
 
 	c.Debug(fmt.Sprintf("Starting service %q", c.ServiceName))
 
-	nameBuf := c.MakeBufferString(c.ServiceName)
-	defer nameBuf.Release()
-	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME())
-	defer name.Release()
+	nameBuf, err := c.MakeBufferString(c.ServiceName)
 	if err != nil {
 		return err
 	}
+	defer nameBuf.Release()
+
+	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME())
+	if err != nil {
+		return err
+	}
+	defer name.Release()
 
 	cred, actualMechs, _, err := c.AcquireCred(name,
 		gssapi.GSS_C_INDEFINITE, c.GSS_C_NO_OID_SET(), gssapi.GSS_C_ACCEPT)

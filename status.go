@@ -147,7 +147,7 @@ func (st MajorStatus) GapToken() bool {
 type Error struct {
 	// gssapi lib binding, so that we can convert the results of an
 	// operation to a string for diagnosis
-	lib *Lib
+	*Lib
 
 	// Specified by gssapi
 	Major MajorStatus
@@ -158,7 +158,7 @@ type Error struct {
 
 func (lib *Lib) MakeError(major, minor C.OM_uint32) *Error {
 	return &Error{
-		lib:   lib,
+		Lib:   lib,
 		Major: MajorStatus(major),
 		Minor: minor,
 	}
@@ -191,13 +191,14 @@ func (e *Error) Error() string {
 		first = false
 		min := C.OM_uint32(0)
 
-		// need to free the contents of the buffer
-		// TODO: is it safe to gss_release_buffer on error?
-		b := e.lib.NewBuffer(true)
+		b, err := e.MakeBuffer(allocGSSAPI)
+		if err != nil {
+			break
+		}
 
 		// TODO: store a mech_type at the lib level?  Or context? For now GSS_C_NO_OID...
 		maj := C.wrap_gss_display_status(
-			e.lib.Fp_gss_display_status,
+			e.Fp_gss_display_status,
 			&min,
 			inquiry,
 			C.int(code_type),
@@ -205,7 +206,7 @@ func (e *Error) Error() string {
 			&context,
 			b.C_gss_buffer_t)
 
-		err := e.lib.MakeError(maj, min).GoError()
+		err = e.MakeError(maj, min).GoError()
 		if err != nil {
 			nOther = nOther + 1
 		}

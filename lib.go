@@ -74,7 +74,7 @@ type Options struct {
 	Krb5Ktname  string
 	LoadDefault int
 
-	Printers []Printer
+	Printers []Printer `json:"-"`
 }
 
 // ftable fields will be initialized to the corresponding function pointers from the
