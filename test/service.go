@@ -10,11 +10,27 @@ import (
 	"github.com/apcera/gssapi"
 )
 
+type loggingHandler struct {
+	*Context
+	handler func(*Context, http.ResponseWriter, *http.Request) (code int, message string)
+}
+
+func (h loggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	code, message := h.handler(h.Context, rw, r)
+
+	severity := gssapi.Info
+	if code != http.StatusOK {
+		severity = gssapi.Err
+		rw.WriteHeader(code)
+	}
+	h.Print(severity, fmt.Sprintf(
+		"%d %q %q %q", code, r.Method, r.URL.String(), message))
+}
+
 func Service(c *Context) error {
 	if c.ServiceName == "" {
 		return fmt.Errorf("Must provide a non-empty value for --service-name")
 	}
-
 	c.Debug(fmt.Sprintf("Starting service %q", c.ServiceName))
 
 	nameBuf, err := c.MakeBufferString(c.ServiceName)
@@ -35,7 +51,7 @@ func Service(c *Context) error {
 	if err != nil {
 		return err
 	}
-	defer cred.Release()
+	c.credential = cred
 
 	keytab := os.Getenv("KRB5_KTNAME")
 	if keytab == "" {
@@ -43,71 +59,19 @@ func Service(c *Context) error {
 	}
 	c.Debug(fmt.Sprintf("Acquired credentials using %v", keytab))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		pass, err := filter(c, cred, w, r)
-		if err != nil {
-			//TODO: differentiate invalid tokens here and return a 403
-			c.Err(fmt.Sprintf("ACCESS %d %q %q %q",
-				http.StatusInternalServerError,
-				r.Method,
-				r.URL.String(), err))
-			finalize(c, w, http.StatusInternalServerError, nil)
-			return
-		}
-		if !pass {
-			c.Warn(fmt.Sprintf(`ACCESS %d %q %q "no input token provided"`,
-				http.StatusUnauthorized,
-				r.Method,
-				r.URL.String()))
-			finalize(c, w, http.StatusUnauthorized, nil)
-			return
-		}
-		w.Write([]byte("Hello!"))
-		c.Info(fmt.Sprintf("ACCESS %d %q %q", http.StatusOK, r.Method, r.URL.String()))
-	})
+	http.Handle("/access/", loggingHandler{c, HandleAccess})
+	http.Handle("/verify_mic/", loggingHandler{c, HandleVerifyMIC})
+	http.Handle("/unwrap/", loggingHandler{c, HandleUnwrap})
+	http.Handle("/inquire_context/", loggingHandler{c, HandleInquireContext})
 
 	err = http.ListenAndServe(c.ServiceAddress, nil)
 	if err != nil {
 		return err
 	}
 
+	// this isn't executed since the entire container is killed, but for
+	// illustration purposes
+	c.credential.Release()
+
 	return nil
-}
-
-func filter(c *Context,
-	cred *gssapi.CredId, w http.ResponseWriter, r *http.Request) (
-	pass bool, err error) {
-
-	negotiate, inputToken := c.CheckSPNEGONegotiate(r.Header, "Authorization")
-
-	// returning a 401 with a challenge, but no token will make the client
-	// initiate security context and re-submit with a non-empty Authorization
-	if !negotiate || inputToken.IsEmpty() {
-		return false, nil
-	}
-
-	ctx, srcName, _, outputToken, _, _, delegatedCredHandle, err :=
-		c.AcceptSecContext(c.GSS_C_NO_CONTEXT,
-			cred, inputToken, c.GSS_C_NO_CHANNEL_BINDINGS)
-
-	//TODO: special case handling of GSS_S_CONTINUE_NEEDED
-	// but it doesn't change the logic, still fail
-	if err != nil {
-		return false, err
-	}
-	srcName.Release()
-	delegatedCredHandle.Release()
-	ctx.DeleteSecContext()
-
-	if !outputToken.IsEmpty() {
-		c.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", outputToken)
-	}
-
-	return true, nil
-}
-
-func finalize(c *Context, w http.ResponseWriter, code int, token *gssapi.Buffer) {
-	c.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", token)
-	w.WriteHeader(code)
-	return
 }

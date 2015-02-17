@@ -4,8 +4,8 @@
 
 tmp_keytab_file="/tmp/keytab$(date +%s)"
 echo "BQIAAABHAAIACUFQU0FSQS5JTwAESFRUUAAFdGFzdHkAAAABAAAAAAMAEgAg1wBAGJBWc122iNwyNJOtbWq8OIhoS2NzCv9PKfLkFnQ=" | base64 --decode >$tmp_keytab_file
-REUSE_DOCKER_IMAGES="" \
-SERVICE_LOG_FILTER="true" \
+REUSE_DOCKER_IMAGES="1" \
+SERVICE_LOG_FILTER="" \
 EXT_KDC_HOST="ad1.apsara.io" \
 EXT_KDC_PORT="88" \
 KEYTAB_FILE="$tmp_keytab_file" \

@@ -73,7 +73,7 @@ func (k KerberizedServer) Negotiate(cred *CredId, inHeader, outHeader Header) (s
 	// Here, challenge the client to initiate the security context. The first
 	// request a client has made will often be unauthenticated, so we return a
 	// 401, which the client handles.
-	if !negotiate || inputToken.IsEmpty() {
+	if !negotiate || inputToken.Length() == 0 {
 		k.AddSPNEGONegotiate(outHeader, "WWW-Authenticate", inputToken)
 		return "", http.StatusUnauthorized, errors.New("SPNEGO: unauthorized")
 	}

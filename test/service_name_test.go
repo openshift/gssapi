@@ -9,34 +9,7 @@ package test
 import (
 	"strings"
 	"testing"
-
-	"github.com/apcera/gssapi"
 )
-
-func prepareServiceName(t *testing.T) *gssapi.Name {
-	if !c.RunAsService {
-		t.Skip()
-	}
-	if c.ServiceName == "" {
-		t.Fatal("Need a --service-name")
-	}
-
-	nameBuf, err := c.MakeBufferString(c.ServiceName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer nameBuf.Release()
-
-	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if name.String() != c.ServiceName {
-		t.Fatalf("name: got %q, expected %q", name.String(), c.ServiceName)
-	}
-
-	return name
-}
 
 func TestInquireMechsForName(t *testing.T) {
 	name := prepareServiceName(t)

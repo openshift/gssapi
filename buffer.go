@@ -49,13 +49,6 @@ wrap_gss_buffer_equal(
 		(memcmp(b1->value,b2->value,b1->length) == 0);
 }
 
-int
-wrap_gss_buffer_empty(
-	gss_buffer_t b)
-{
-	return b == NULL || b->length == 0;
-}
-
 */
 import "C"
 
@@ -85,6 +78,10 @@ func (lib *Lib) MakeBuffer(alloc int) (*Buffer, error) {
 
 // MakeBufferBytes makes a Buffer encapsulating a byte slice
 func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
+	if len(data) == 0 {
+		return lib.GSS_C_NO_BUFFER, nil
+	}
+
 	// have to allocate the memory in C land and copy
 
 	b, err := lib.MakeBuffer(allocMalloc)
@@ -143,17 +140,25 @@ func (b *Buffer) Release() error {
 	return nil
 }
 
+// Length returns the number of bytes in the Buffer
+func (b *Buffer) Length() int {
+	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
+		return 0
+	}
+	return int(b.C_gss_buffer_t.length)
+}
+
 // Bytes returns teh contents of a Buffer as a byte slice
 func (b *Buffer) Bytes() []byte {
-	if b == nil {
-		return nil
+	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
+		return make([]byte, 0)
 	}
 	return C.GoBytes(b.C_gss_buffer_t.value, C.int(b.C_gss_buffer_t.length))
 }
 
 // String returns the contents of a Buffer as a string
 func (b *Buffer) String() string {
-	if b == nil {
+	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
 		return ""
 	}
 	return C.GoStringN((*C.char)(b.C_gss_buffer_t.value), C.int(b.C_gss_buffer_t.length))
@@ -182,13 +187,4 @@ func (b Buffer) Name(nametype *OID) (*Name, error) {
 func (b *Buffer) Equal(other *Buffer) bool {
 	isEqual := C.wrap_gss_buffer_equal(b.C_gss_buffer_t, other.C_gss_buffer_t)
 	return isEqual != 0
-}
-
-func (b *Buffer) IsEmpty() bool {
-	if b == nil {
-		return true
-	}
-
-	isEmpty := C.wrap_gss_buffer_empty(b.C_gss_buffer_t)
-	return isEmpty != 0
 }

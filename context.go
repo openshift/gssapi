@@ -109,6 +109,41 @@ wrap_gss_delete_sec_context(void *fp,
 		output_token);
 }
 
+OM_uint32
+wrap_gss_inquire_context(void *fp,
+	OM_uint32 * minor_status,
+	const gss_ctx_id_t context_handle,
+	gss_name_t * src_name,
+	gss_name_t * targ_name,
+	OM_uint32 * lifetime_rec,
+	gss_OID * mech_type,
+	OM_uint32 * ctx_flags,
+	int * locally_initiated,
+	int * open)
+{
+	return ((OM_uint32(*) (
+		OM_uint32 *,
+		const gss_ctx_id_t,
+		gss_name_t *,
+		gss_name_t *,
+		OM_uint32 *,
+		gss_OID *,
+		OM_uint32 *,
+		int *,
+		int *)
+	) fp)(
+		minor_status,
+		context_handle,
+		src_name,
+		targ_name,
+		lifetime_rec,
+		mech_type,
+		ctx_flags,
+		locally_initiated,
+		open);
+}
+
+
 */
 import "C"
 
@@ -149,9 +184,10 @@ func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 		C_inputToken = inputToken.C_gss_buffer_t
 	}
 
-	// prepare the outputs
+	// prepare the outputs.
 	if ctxIn != nil {
-		ctxOut = ctxIn
+		ctxCopy := *ctxIn
+		ctxOut = &ctxCopy
 	} else {
 		ctxOut = lib.NewCtxId()
 	}
@@ -214,7 +250,8 @@ func (lib *Lib) AcceptSecContext(
 
 	// prepare the outputs
 	if ctxIn != nil {
-		ctxOut = ctxIn
+		ctxCopy := *ctxIn
+		ctxOut = &ctxCopy
 	} else {
 		ctxOut = lib.GSS_C_NO_CONTEXT
 	}
@@ -256,7 +293,6 @@ func (lib *Lib) AcceptSecContext(
 // I decided not to implement the outputToken parameter since its use is no
 // longer recommended, and it would have to be Released by the caller
 func (ctx *CtxId) DeleteSecContext() error {
-
 	if ctx == nil || ctx.C_gss_ctx_id_t == nil {
 		return nil
 	}
@@ -275,9 +311,51 @@ func (ctx *CtxId) Release() error {
 	return ctx.DeleteSecContext()
 }
 
+func (ctx *CtxId) InquireContext() (
+	srcName *Name, targetName *Name, lifetimeRec time.Duration, mechType *OID,
+	ctxFlags uint64, locallyInitiated bool, open bool, err error) {
+
+	min := C.OM_uint32(0)
+	srcName = ctx.NewName()
+	targetName = ctx.NewName()
+	rec := C.OM_uint32(0)
+	mechType = ctx.NewOID()
+	flags := C.OM_uint32(0)
+	li := C.int(0)
+	opn := C.int(0)
+
+	maj := C.wrap_gss_inquire_context(ctx.Fp_gss_inquire_context,
+		&min,
+		ctx.C_gss_ctx_id_t,
+		&srcName.C_gss_name_t,
+		&targetName.C_gss_name_t,
+		&rec,
+		&mechType.C_gss_OID,
+		&flags,
+		&li,
+		&opn)
+
+	err = ctx.MakeError(maj, min).GoError()
+	if err != nil {
+		ctx.Err("InquireContext: ", err)
+		return nil, nil, 0, nil, 0, false, false, err
+	}
+
+	lifetimeRec = time.Duration(rec) * time.Second
+	ctxFlags = uint64(flags)
+
+	if li != 0 {
+		locallyInitiated = true
+	}
+	if opn != 0 {
+		open = true
+	}
+
+	return srcName, targetName, lifetimeRec, mechType, ctxFlags, locallyInitiated, open, nil
+}
+
 // TODO: gss_process_context_token
 // TODO: gss_context_time
-// TODO: gss_inquire_context
 // TODO: gss_wrap_size_limit
 // TODO: gss_export_sec_context
 // TODO: gss_import_sec_context

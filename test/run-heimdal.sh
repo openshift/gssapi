@@ -3,7 +3,7 @@
 # Copyright 2013-2015 Apcera Inc. All rights reserved.
 
 REUSE_DOCKER_IMAGES="" \
-SERVICE_LOG_FILTER="true" \
+SERVICE_LOG_FILTER="" \
 EXT_KDC_HOST="" \
 EXT_KDC_PORT="" \
 KEYTAB_FILE="" \
