@@ -30,7 +30,7 @@ func TestNameImportExport(t *testing.T) {
 		}
 		defer b.Release()
 
-		name, err := b.Name(l.GSS_C_NT_HOSTBASED_SERVICE())
+		name, err := b.Name(l.GSS_C_NT_HOSTBASED_SERVICE)
 		if err != nil {
 			t.Fatalf("%q: Got error %v, expected nil", n, err)
 		}
@@ -60,12 +60,8 @@ func TestNameImportExport(t *testing.T) {
 	}
 	defer kerbOID.Release()
 
-	contains, err := mechs.Contains(kerbOID)
-	if err != nil {
-		t.Fatalf("Got error %v, expected nil", err)
-	}
-	if !contains {
-		t.Fatalf("Expected true")
+	if !mechs.Contains(kerbOID) {
+		t.Fatalf("Expected %s to be in %s", kerbOID.DebugString, mechs.DebugString)
 	}
 
 	makeNames := func(n string) (

@@ -61,7 +61,7 @@ get_oid_set_member(
 	gss_OID_set set,
 	int index)
 {
-	return set->elements + (index * sizeof(*set->elements));
+	return &(set->elements[index]);
 }
 
 */
@@ -69,6 +69,7 @@ import "C"
 
 import (
 	"fmt"
+	"strings"
 )
 
 func (lib *Lib) NewOIDSet() *OIDSet {
@@ -78,17 +79,13 @@ func (lib *Lib) NewOIDSet() *OIDSet {
 	}
 }
 
-func (lib Lib) GSS_C_NO_OID_SET() *OIDSet {
-	return lib.NewOIDSet()
-}
-
 // CreateEmptyOIDSet makes an empty OIDSet
-func (lib *Lib) CreateEmptyOIDSet() (s *OIDSet, err error) {
-	return lib.CreateOIDSet()
+func (lib *Lib) MakeEmptyOIDSet() (s *OIDSet, err error) {
+	return lib.MakeOIDSet()
 }
 
 // CreateOIDSet makes an OIDSet prepopulated with the given OIDs.
-func (lib *Lib) CreateOIDSet(oids ...*OID) (s *OIDSet, err error) {
+func (lib *Lib) MakeOIDSet(oids ...*OID) (s *OIDSet, err error) {
 	s = &OIDSet{
 		Lib: lib,
 	}
@@ -136,7 +133,7 @@ func (s *OIDSet) Add(oids ...*OID) (err error) {
 }
 
 // Contains (gss_test_oid_set_member) checks if an OID is present OIDSet.
-func (s *OIDSet) Contains(oid *OID) (present bool, err error) {
+func (s *OIDSet) TestOIDSetMember(oid *OID) (contains bool, err error) {
 	var min C.OM_uint32
 	var isPresent C.int
 
@@ -150,16 +147,36 @@ func (s *OIDSet) Contains(oid *OID) (present bool, err error) {
 	return isPresent != 0, nil
 }
 
+func (s *OIDSet) Contains(oid *OID) bool {
+	contains, _ := s.TestOIDSetMember(oid)
+	return contains
+}
+
+// Returns the number of OIDs in the set
+func (s *OIDSet) Length() int {
+	if s == nil {
+		return 0
+	}
+	return int(s.C_gss_OID_set.count)
+}
+
 // Returns a specific OID from the set. The memory will be released when the
 // set itself is released
+func (s *OIDSet) Get(index int) (*OID, error) {
+	if s == nil || index < 0 || index >= int(s.C_gss_OID_set.count) {
+		return nil, fmt.Errorf("index %d out of bounds", index)
+	}
+	oid := s.NewOID()
+	oid.C_gss_OID = C.get_oid_set_member(s.C_gss_OID_set, C.int(index))
+	return oid, nil
+}
 
-func (s *OIDSet) Get(index int) (oid *OID) {
-
-	if index < 0 || index >= int(s.C_gss_OID_set.count) {
-		panic(fmt.Errorf("index %d out of bounds", index))
+func (s *OIDSet) DebugString() string {
+	names := make([]string, 0)
+	for i := 0; i < s.Length(); i++ {
+		oid, _ := s.Get(i)
+		names = append(names, oid.DebugString())
 	}
 
-	oid = s.NewOID()
-	oid.C_gss_OID = C.get_oid_set_member(s.C_gss_OID_set, C.int(index))
-	return oid
+	return "[" + strings.Join(names, ", ") + "]"
 }

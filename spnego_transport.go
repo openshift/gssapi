@@ -31,7 +31,7 @@ func (lib *Lib) NewSPNEGOTransport(serviceName string) (*SPNEGOTransport, error)
 	}
 	defer namebuf.Release()
 
-	name, err := namebuf.Name(lib.GSS_KRB5_NT_PRINCIPAL_NAME())
+	name, err := namebuf.Name(lib.GSS_KRB5_NT_PRINCIPAL_NAME)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 	// try HEAD request until get a clean 200, a cacheable authorization, or a failure
 
 	negotiate := false
-	sendToken := t.GSS_C_NO_BUFFER()
-	receiveToken := t.GSS_C_NO_BUFFER()
+	sendToken := t.GSS_C_NO_BUFFER
+	receiveToken := t.GSS_C_NO_BUFFER
 
 	for {
 		if !t.authorization.IsEmpty() {
@@ -92,9 +92,9 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 
 		// other outputs can be safely ignored, no need to release
 		t.ctx, _, sendToken, _, _, err = t.InitSecContext(
-			t.GSS_C_NO_CREDENTIAL(),
-			t.ctx, t.serviceName, t.GSS_C_NO_OID(), 0, 0,
-			GSS_C_NO_CHANNEL_BINDINGS, receiveToken)
+			t.GSS_C_NO_CREDENTIAL,
+			t.ctx, t.serviceName, t.GSS_C_NO_OID, 0, 0,
+			t.GSS_C_NO_CHANNEL_BINDINGS, receiveToken)
 		receiveToken.Release()
 		if err != nil {
 			e, ok := err.(*Error)

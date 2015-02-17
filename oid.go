@@ -9,26 +9,6 @@ package gssapi
 
 const size_t gss_OID_size=sizeof(gss_OID_desc);
 
-// Name-Types.  These are standardized in the RFCs.  The library requires that
-// a given name be usable for resolution, but it's typically a macro, there's
-// no guarantee about the name exported from the library.  But since they're
-// static, and well-defined, we can just define them ourselves.
-
-// RFC2744-mandated values, mapping from as-near-as-possible to cut&paste
-const gss_OID_desc *_GSS_C_NT_USER_NAME           = & (gss_OID_desc) { 10, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01" };
-const gss_OID_desc *_GSS_C_NT_MACHINE_UID_NAME    = & (gss_OID_desc) { 10, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02" };
-const gss_OID_desc *_GSS_C_NT_STRING_UID_NAME     = & (gss_OID_desc) { 10, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03" };
-const gss_OID_desc *_GSS_C_NT_HOSTBASED_SERVICE_X = & (gss_OID_desc) {  6, "\x2b\x06\x01\x05\x06\x02" };
-const gss_OID_desc *_GSS_C_NT_HOSTBASED_SERVICE   = & (gss_OID_desc) { 10, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04" };
-const gss_OID_desc *_GSS_C_NT_ANONYMOUS           = & (gss_OID_desc) {  6, "\x2b\x06\x01\x05\x06\x03" };  // original had \01
-const gss_OID_desc *_GSS_C_NT_EXPORT_NAME         = & (gss_OID_desc) {  6, "\x2b\x06\x01\x05\x06\x04" };
-
-// from gssapi_krb5.h: This name form shall be represented by the Object
-// Identifier {iso(1) member-body(2) United States(840) mit(113554) infosys(1)
-// gssapi(2) krb5(2) krb5_name(1)}.  The recommended symbolic name for this
-// type is "GSS_KRB5_NT_PRINCIPAL_NAME".
-const gss_OID_desc *_GSS_KRB5_NT_PRINCIPAL_NAME	 = & (gss_OID_desc) { 10, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01" };
-
 void helper_gss_OID_desc_free_elements(gss_OID oid) {
 	free(oid->elements);
 }
@@ -53,74 +33,13 @@ wrap_gss_oid_equal(void *fp, gss_OID oid1, gss_OID oid2)
 import "C"
 
 import (
+	"bytes"
 	"fmt"
 	"unsafe"
 )
 
 func (lib *Lib) NewOID() *OID {
-	return &OID{
-		Lib: lib,
-	}
-}
-
-func (lib *Lib) GSS_C_NO_OID() *OID {
-	return lib.NewOID()
-}
-
-func (lib *Lib) GSS_C_NT_USER_NAME() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_USER_NAME,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_MACHINE_UID_NAME() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_MACHINE_UID_NAME,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_STRING_UID_NAME() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_MACHINE_UID_NAME,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_HOSTBASED_SERVICE_X() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_HOSTBASED_SERVICE_X,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_HOSTBASED_SERVICE() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_HOSTBASED_SERVICE,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_ANONYMOUS() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_ANONYMOUS,
-	}
-}
-
-func (lib *Lib) GSS_C_NT_EXPORT_NAME() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_C_NT_EXPORT_NAME,
-	}
-}
-
-func (lib *Lib) GSS_KRB5_NT_PRINCIPAL_NAME() *OID {
-	return &OID{
-		Lib:       lib,
-		C_gss_OID: C._GSS_KRB5_NT_PRINCIPAL_NAME,
-	}
+	return &OID{Lib: lib}
 }
 
 // MakeOIDBytes makes an OID encapsulating a byte slice. Note that it does not duplicate
@@ -157,15 +76,6 @@ func (lib *Lib) MakeOIDString(data string) (*OID, error) {
 	return lib.MakeOIDBytes([]byte(data))
 }
 
-func (oid OID) Bytes() []byte {
-	var l C.OM_uint32
-	var p *C.char
-
-	C.helper_gss_OID_desc_get_elements(oid.C_gss_OID, &l, &p)
-
-	return C.GoBytes(unsafe.Pointer(p), C.int(l))
-}
-
 // Release safely frees the contents of an OID if it's allocated with malloc by
 // MakeOIDBytes.
 func (oid *OID) Release() error {
@@ -185,13 +95,59 @@ func (oid *OID) Release() error {
 	return nil
 }
 
-// Used in testing to check that we get back something reasonable form the C
-// converted form
-func DebugStringCGssOIDDesc(oid C.gss_OID_desc) string {
+func (oid OID) Bytes() []byte {
 	var l C.OM_uint32
 	var p *C.char
 
-	C.helper_gss_OID_desc_get_elements(&oid, &l, &p)
+	C.helper_gss_OID_desc_get_elements(oid.C_gss_OID, &l, &p)
 
-	return fmt.Sprintf(`{%d %p}:"%x"`, l, p, C.GoStringN(p, C.int(l)))
+	return C.GoBytes(unsafe.Pointer(p), C.int(l))
+}
+
+func (oid *OID) String() string {
+	var l C.OM_uint32
+	var p *C.char
+
+	C.helper_gss_OID_desc_get_elements(oid.C_gss_OID, &l, &p)
+
+	return fmt.Sprintf(`%x`, C.GoStringN(p, C.int(l)))
+}
+
+// Returns a symbolic name for a known OID, or the string. Note that this
+// function is intended for debugging and is not at all performant.
+func (oid *OID) DebugString() string {
+	switch {
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_USER_NAME.Bytes()):
+		return "GSS_C_NT_USER_NAME"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_MACHINE_UID_NAME.Bytes()):
+		return "GSS_C_NT_MACHINE_UID_NAME"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_STRING_UID_NAME.Bytes()):
+		return "GSS_C_NT_STRING_UID_NAME"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_HOSTBASED_SERVICE_X.Bytes()):
+		return "GSS_C_NT_HOSTBASED_SERVICE_X"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_HOSTBASED_SERVICE.Bytes()):
+		return "GSS_C_NT_HOSTBASED_SERVICE"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_ANONYMOUS.Bytes()):
+		return "GSS_C_NT_ANONYMOUS"
+	case bytes.Equal(oid.Bytes(), oid.GSS_C_NT_EXPORT_NAME.Bytes()):
+		return "GSS_C_NT_EXPORT_NAME"
+	case bytes.Equal(oid.Bytes(), oid.GSS_KRB5_NT_PRINCIPAL_NAME.Bytes()):
+		return "GSS_KRB5_NT_PRINCIPAL_NAME"
+	case bytes.Equal(oid.Bytes(), oid.GSS_KRB5_NT_PRINCIPAL.Bytes()):
+		return "GSS_KRB5_NT_PRINCIPAL"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_KRB5.Bytes()):
+		return "GSS_MECH_KRB5"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_KRB5_LEGACY.Bytes()):
+		return "GSS_MECH_KRB5_LEGACY"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_KRB5_OLD.Bytes()):
+		return "GSS_MECH_KRB5_OLD"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_SPNEGO.Bytes()):
+		return "GSS_MECH_SPNEGO"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_IAKERB.Bytes()):
+		return "GSS_MECH_IAKERB"
+	case bytes.Equal(oid.Bytes(), oid.GSS_MECH_NTLMSSP.Bytes()):
+		return "GSS_MECH_NTLMSSP"
+	}
+
+	return oid.String()
 }

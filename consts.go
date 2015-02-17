@@ -89,7 +89,3 @@ const (
 	// Infinite Lifetime, defined as 2^32-1
 	GSS_C_INDEFINITE = 0xffffffff * time.Second
 )
-
-var (
-	GSS_C_NO_CHANNEL_BINDINGS = (ChannelBindings)(nil)
-)

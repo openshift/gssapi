@@ -83,14 +83,6 @@ func (lib *Lib) MakeBuffer(alloc int) (*Buffer, error) {
 	return b, nil
 }
 
-func (lib *Lib) GSS_C_NO_BUFFER() *Buffer {
-	return &Buffer{
-		Lib: lib,
-		// C_gss_buffer_t: C.GSS_C_NO_BUFFER, already nil
-		// alloc: allocNone, already 0
-	}
-}
-
 // MakeBufferBytes makes a Buffer encapsulating a byte slice
 func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
 	// have to allocate the memory in C land and copy
