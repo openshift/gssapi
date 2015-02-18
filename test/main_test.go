@@ -3,6 +3,7 @@
 package test
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -37,7 +38,7 @@ func init() {
 	flag.StringVar(&c.Options.Krb5Config, "krb5-config", "", "path to krb5.config file")
 }
 
-func loadlib(debug bool) (*gssapi.Lib, error) {
+func loadlib(debug bool, prefix string) (*gssapi.Lib, error) {
 	max := gssapi.Err + 1
 	if debug {
 		max = gssapi.MaxSeverity
@@ -45,7 +46,7 @@ func loadlib(debug bool) (*gssapi.Lib, error) {
 	pp := make([]gssapi.Printer, 0, max)
 	for i := gssapi.Severity(0); i < max; i++ {
 		p := log.New(os.Stderr,
-			fmt.Sprintf("go-gssapi-test: %s\t", i),
+			fmt.Sprintf("%s: %s\t", prefix, i),
 			log.LstdFlags)
 		pp = append(pp, p)
 	}
@@ -60,12 +61,18 @@ func loadlib(debug bool) (*gssapi.Lib, error) {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	lib, err := loadlib(c.DebugLog)
+	prefix := "go-gssapi-test-client"
+	if c.RunAsService {
+		prefix = "go-gssapi-test-service"
+	}
+	lib, err := loadlib(c.DebugLog, prefix)
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.Lib = lib
-	c.Info(fmt.Sprintf("Config: %#v", c))
+
+	j, _ := json.MarshalIndent(c, "", "  ")
+	c.Debug(fmt.Sprintf("Config: %s", string(j)))
 
 	code := m.Run()
 	if code != 0 {

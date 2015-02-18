@@ -12,8 +12,9 @@ KEYTAB_FILE="$tmp_keytab_file" \
 SERVICE_NAME="HTTP/tasty" \
 REALM_NAME="APSARA.IO" \
 DOMAIN_NAME="apsara.io" \
-USER_NAME="system-test" \
+USER_NAME="systemtest" \
 USER_PASSWORD="P@ssword!" \
 CLIENT_IN_CONTAINER="" \
         ./run.sh
+
 rm $tmp_keytab_file

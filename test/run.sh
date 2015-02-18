@@ -186,8 +186,7 @@ if [[ "$OSTYPE" != "darwin"* || "$CLIENT_IN_CONTAINER" != "" ]]; then
                 "client" \
                 "--link=service:service \
                 $DOCKER_KDC_OPTS \
-                --volume $TEST_DIR/gssapi:/opt/go/src/github.com/apcera/gssapi" \
-                >/dev/null
+                --volume $TEST_DIR/gssapi:/opt/go/src/github.com/apcera/gssapi"
 else
         log "Run gssapi sample client on host"
         KRB5_CONFIG_TEMPLATE=${DOCKER_DIR}/client/krb5.conf.template \

@@ -40,7 +40,10 @@ var _ ServerNegotiator = KerberizedServer{}
 // AcquireCred acquires a Kerberos credential (keytab) from environment. The
 // CredId MUST be released by the caller.
 func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
-	nameBuf := k.MakeBufferString(serviceName)
+	nameBuf, err := k.MakeBufferString(serviceName)
+	if err != nil {
+		return nil, err
+	}
 	defer nameBuf.Release()
 
 	name, err := nameBuf.Name(k.GSS_KRB5_NT_PRINCIPAL_NAME())

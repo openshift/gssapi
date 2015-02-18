@@ -162,7 +162,11 @@ func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 
 	min := C.OM_uint32(0)
 	actualMechType = lib.NewOID()
-	outputToken = lib.NewBuffer(true)
+	outputToken, err = lib.MakeBuffer(allocGSSAPI)
+	if err != nil {
+		return nil, nil, nil, 0, 0, err
+	}
+
 	flags := C.OM_uint32(0)
 	timerec := C.OM_uint32(0)
 
@@ -222,7 +226,10 @@ func (lib *Lib) AcceptSecContext(
 	min := C.OM_uint32(0)
 	srcName = lib.NewName()
 	actualMechType = lib.NewOID()
-	outputToken = lib.NewBuffer(true)
+	outputToken, err = lib.MakeBuffer(allocGSSAPI)
+	if err != nil {
+		return nil, nil, nil, nil, 0, 0, nil, err
+	}
 	flags := C.OM_uint32(0)
 	timerec := C.OM_uint32(0)
 	delegatedCredHandle = lib.NewCredId()

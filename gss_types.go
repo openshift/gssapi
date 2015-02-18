@@ -10,17 +10,23 @@ package gssapi
 import "C"
 
 // Struct types. The structs themselves are allocated in Go and are therefore
-// GCed, the contents may come from Go or from C/gssapi calls, and therefore
-// must be explicitly released.  Calling the Release method once per instance
-// is safe.
+// GCed, the contents may comes from C/gssapi calls, and therefore must be
+// explicitly released.  Calling the Release method is safe on uninitialized
+// objects, and nil pointers.
+
+const (
+	allocNone = iota
+	allocMalloc
+	allocGSSAPI
+)
 
 type Buffer struct {
 	*Lib
 	C_gss_buffer_t C.gss_buffer_t
 
 	// indicates if the contents of the buffer must be released with
-	// gss_release_buffer
-	releasable bool
+	// gss_release_buffer (allocGSSAPI) or free-ed (allocMalloc)
+	alloc int
 }
 
 type Name struct {
@@ -28,12 +34,18 @@ type Name struct {
 	C_gss_name_t C.gss_name_t
 }
 
-// OID is the wrapper for gss_OID_desc type. OIDs are not released explicitly,
-// only as part of OIDSet
+// OID is the wrapper for gss_OID_desc type. IMPORTANT: In gssapi OIDs are not
+// released explicitly, only as part of an OIDSet. However we malloc the OID
+// bytes ourselves, so need to free them. To keep it simple, assume that OIDs
+// obtained from gogssapi must be Release()-ed. It will be safely ignored on
+// those allocated by gssapi
 type OID struct {
 	*Lib
 	C_gss_OID C.gss_OID
-	data      []byte
+
+	// indicates if the contents of the buffer must be released with
+	// gss_release_buffer (allocGSSAPI) or free-ed (allocMalloc)
+	alloc int
 }
 
 type OIDSet struct {
@@ -56,5 +68,5 @@ type CredUsage C.gss_cred_usage_t // C.int
 type ChannelBindingAddressFamily uint32
 
 // A struct pointer technically, but not really used yet, and it's a static,
-// non-releaseable struct so this may suffice
+// non-releaseable struct so an alias will suffice
 type ChannelBindings C.gss_channel_bindings_t

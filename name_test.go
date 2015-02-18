@@ -21,7 +21,10 @@ func TestNameImportExport(t *testing.T) {
 	}
 
 	makeName := func(n string) (name *Name) {
-		b := l.MakeBufferString(n)
+		b, _ := l.MakeBufferString(n)
+		if err != nil {
+			t.Fatalf("%q: Got error %v, expected nil", n, err)
+		}
 		if b == nil {
 			t.Fatalf("%q: Got nil, expected non-nil", n)
 		}
@@ -51,11 +54,15 @@ func TestNameImportExport(t *testing.T) {
 	}
 
 	// This OID seems to be an avalable merch on linux
-	kerbOID := l.MakeOIDBytes([]byte{'\x2a', '\x86', '\x48', '\x86', '\xf7', '\x12', '\x01', '\x02', '\x02'})
+	kerbOID, err := l.MakeOIDBytes([]byte{'\x2a', '\x86', '\x48', '\x86', '\xf7', '\x12', '\x01', '\x02', '\x02'})
+	if err != nil {
+		t.Fatalf("Got error %v, expected nil", err)
+	}
+	defer kerbOID.Release()
 
 	contains, err := mechs.Contains(kerbOID)
 	if err != nil {
-		t.Fatalf("Got error %q, expected nil", err.Error())
+		t.Fatalf("Got error %v, expected nil", err)
 	}
 	if !contains {
 		t.Fatalf("Expected true")

@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
+	_ "net/http/httputil"
 	"strings"
 )
 
@@ -25,7 +25,10 @@ func (lib *Lib) NewSPNEGOTransport(serviceName string) (*SPNEGOTransport, error)
 		RoundTripper: &http.Transport{},
 	}
 
-	namebuf := lib.MakeBufferString(serviceName)
+	namebuf, err := lib.MakeBufferString(serviceName)
+	if err != nil {
+		return nil, err
+	}
 	defer namebuf.Release()
 
 	name, err := namebuf.Name(lib.GSS_KRB5_NT_PRINCIPAL_NAME())
@@ -79,8 +82,8 @@ func (t *SPNEGOTransport) RoundTrip(req *http.Request) (resp *http.Response, err
 		if err != nil {
 			return nil, err
 		}
-		out, _ := httputil.DumpResponse(resp, true)
-		t.Debug("<- SPNEGO RECEIVED:\n", string(out), "\n")
+		// out, _ := httputil.DumpResponse(resp, true)
+		// t.Debug("<- SPNEGO RECEIVED:\n", string(out), "\n")
 		resp.Body.Close()
 
 		if !negotiate {
@@ -119,8 +122,8 @@ func (t *SPNEGOTransport) doRoundTrip(req *http.Request, inputToken *Buffer) (
 
 	t.AddSPNEGONegotiate(req.Header, "Authorization", inputToken)
 
-	out, _ := httputil.DumpRequest(req, true)
-	t.Debug("-> SPNEGO SEND:\n", string(out), "\n")
+	// out, _ := httputil.DumpRequest(req, true)
+	// t.Debug("-> SPNEGO SEND:\n", string(out), "\n")
 
 	resp, err = t.RoundTripper.RoundTrip(req)
 	if err != nil {
@@ -145,6 +148,13 @@ func (lib *Lib) AddSPNEGONegotiate(h Header, name string, token *Buffer) {
 }
 
 func (lib *Lib) CheckSPNEGONegotiate(h Header, name string) (present bool, token *Buffer) {
+	var err error
+	defer func() {
+		if err != nil {
+			lib.Debug(fmt.Sprintf("CheckSPNEGONegotiate: %v", err))
+		}
+	}()
+
 	v := h.Get(name)
 	if len(v) == 0 || !strings.HasPrefix(v, "Negotiate") {
 		return false, nil
@@ -157,7 +167,10 @@ func (lib *Lib) CheckSPNEGONegotiate(h Header, name string) (present bool, token
 		return false, nil
 	}
 	if len(tbytes) > 0 {
-		token = lib.MakeBufferBytes(tbytes)
+		token, err = lib.MakeBufferBytes(tbytes)
+		if err != nil {
+			return false, nil
+		}
 	}
 
 	return present, token

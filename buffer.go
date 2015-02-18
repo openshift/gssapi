@@ -5,9 +5,12 @@ package gssapi
 /*
 #include <gssapi.h>
 #include <string.h>
+#include <stdlib.h>
+
+const size_t gss_buffer_size=sizeof(gss_buffer_desc);
 
 OM_uint32
-wrap_any_gss_one_buffer(void *fp,
+wrap_gss_release_buffer(void *fp,
 	OM_uint32 *minor_status,
 	gss_buffer_t buf)
 {
@@ -57,60 +60,94 @@ wrap_gss_buffer_empty(
 import "C"
 
 import (
+	"errors"
 	"unsafe"
 )
 
-// NewBuffer returns an uninitialized (empty) Buffer
-func (lib *Lib) NewBuffer(releasable bool) *Buffer {
-	return &Buffer{
-		Lib:            lib,
-		C_gss_buffer_t: C.gss_buffer_t(&C.gss_buffer_desc{}),
-		releasable:     releasable,
+var ErrMallocFailed = errors.New("malloc failed, out of memory?")
+
+// MakeBufferMalloc returns a Buffer with an empty malloc-ed gss_buffer_desc in
+// it. The return value must be .Release()-ed
+func (lib *Lib) MakeBuffer(alloc int) (*Buffer, error) {
+	s := C.malloc(C.gss_buffer_size)
+	if s == nil {
+		return nil, ErrMallocFailed
 	}
+	C.memset(s, 0, C.gss_buffer_size)
+
+	b := &Buffer{
+		Lib:            lib,
+		C_gss_buffer_t: C.gss_buffer_t(s),
+		alloc:          alloc,
+	}
+	return b, nil
 }
 
 func (lib *Lib) GSS_C_NO_BUFFER() *Buffer {
 	return &Buffer{
 		Lib: lib,
-		// C_gss_buffer_t: C.GSS_C_NO_BUFFER,
-		releasable: true,
+		// C_gss_buffer_t: C.GSS_C_NO_BUFFER, already nil
+		// alloc: allocNone, already 0
 	}
 }
 
 // MakeBufferBytes makes a Buffer encapsulating a byte slice
-func (lib *Lib) MakeBufferBytes(content []byte) *Buffer {
-	return &Buffer{
-		Lib: lib,
-		C_gss_buffer_t: C.gss_buffer_t(
-			&C.gss_buffer_desc{
-				length: C.size_t(len(content)),
-				value:  (unsafe.Pointer)(&content[0]),
-			}),
+func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
+	// have to allocate the memory in C land and copy
+
+	b, err := lib.MakeBuffer(allocMalloc)
+	if err != nil {
+		return nil, err
 	}
+
+	l := C.size_t(len(data))
+	c := C.malloc(l)
+	if b == nil {
+		return nil, ErrMallocFailed
+	}
+	C.memcpy(c, (unsafe.Pointer)(&data[0]), l)
+
+	b.C_gss_buffer_t.length = l
+	b.C_gss_buffer_t.value = c
+	b.alloc = allocMalloc
+
+	return b, nil
 }
 
 // MakeBufferBytes makes a Buffer encapsulating the contents of a string
-func (lib *Lib) MakeBufferString(content string) *Buffer {
+func (lib *Lib) MakeBufferString(content string) (*Buffer, error) {
 	return lib.MakeBufferBytes([]byte(content))
 }
 
-// Release safely frees the contents of a Buffer. C.gss_buffer_t (and thus
-// our Buffer) can come from Go or from the GSSAPI library; Those coming
-// from GSSAPI must have been wrapped by us, so all API wrappers must set the
-// releasable flag.
+// Release safely frees the contents of a Buffer.
 func (b *Buffer) Release() error {
-	if b == nil || !b.releasable || b.C_gss_buffer_t == nil {
+	if b == nil || b.C_gss_buffer_t == nil {
 		return nil
 	}
 
-	var min C.OM_uint32
-	maj := C.wrap_any_gss_one_buffer(b.Fp_gss_release_buffer, &min, b.C_gss_buffer_t)
-	err := b.MakeError(maj, min).GoError()
-	if err != nil {
-		return err
+	defer func() {
+		C.free(unsafe.Pointer(b.C_gss_buffer_t))
+		b.C_gss_buffer_t = nil
+		b.alloc = allocNone
+	}()
+
+	// free the value as needed
+	switch {
+	case b.C_gss_buffer_t.value == nil:
+		// do nothing
+
+	case b.alloc == allocMalloc:
+		C.free(b.C_gss_buffer_t.value)
+
+	case b.alloc == allocGSSAPI:
+		var min C.OM_uint32
+		maj := C.wrap_gss_release_buffer(b.Fp_gss_release_buffer, &min, b.C_gss_buffer_t)
+		err := b.MakeError(maj, min).GoError()
+		if err != nil {
+			return err
+		}
 	}
 
-	b.releasable = false
 	return nil
 }
 
@@ -143,10 +180,11 @@ func (b Buffer) Name(nametype *OID) (*Name, error) {
 		return nil, err
 	}
 
-	return &Name{
+	n := &Name{
 		Lib:          b.Lib,
 		C_gss_name_t: result,
-	}, nil
+	}
+	return n, nil
 }
 
 func (b *Buffer) Equal(other *Buffer) bool {
