@@ -123,10 +123,6 @@ func (lib *Lib) NewCtxId() *CtxId {
 	}
 }
 
-func (lib *Lib) GSS_C_NO_CONTEXT() *CtxId {
-	return lib.NewCtxId()
-}
-
 // targetName is the only mandatory input?
 func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 	targetName *Name, mechType *OID, reqFlags uint32, timeReq time.Duration,
@@ -220,7 +216,7 @@ func (lib *Lib) AcceptSecContext(
 	if ctxIn != nil {
 		ctxOut = ctxIn
 	} else {
-		ctxOut = lib.GSS_C_NO_CONTEXT()
+		ctxOut = lib.GSS_C_NO_CONTEXT
 	}
 
 	min := C.OM_uint32(0)

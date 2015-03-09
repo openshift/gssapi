@@ -46,14 +46,14 @@ func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
 	}
 	defer nameBuf.Release()
 
-	name, err := nameBuf.Name(k.GSS_KRB5_NT_PRINCIPAL_NAME())
+	name, err := nameBuf.Name(k.GSS_KRB5_NT_PRINCIPAL_NAME)
 	if err != nil {
 		return nil, err
 	}
 	defer name.Release()
 
 	cred, actualMechs, _, err := k.Lib.AcquireCred(name,
-		GSS_C_INDEFINITE, k.GSS_C_NO_OID_SET(), GSS_C_ACCEPT)
+		GSS_C_INDEFINITE, k.GSS_C_NO_OID_SET, GSS_C_ACCEPT)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func (k KerberizedServer) Negotiate(cred *CredId, inHeader, outHeader Header) (s
 
 	// FIXME: GSS_S_CONTINUED_NEEDED handling?
 	ctx, srcName, _, outputToken, _, _, delegatedCredHandle, err :=
-		k.AcceptSecContext(k.GSS_C_NO_CONTEXT(),
-			cred, inputToken, GSS_C_NO_CHANNEL_BINDINGS)
+		k.AcceptSecContext(k.GSS_C_NO_CONTEXT,
+			cred, inputToken, k.GSS_C_NO_CHANNEL_BINDINGS)
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}

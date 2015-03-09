@@ -39,9 +39,9 @@ wrap_gss_acquire_cred(void *fp,
 OM_uint32
 wrap_gss_add_cred(void *fp,
 	OM_uint32 * minor_status,
-	gss_cred_id_t * input_cred_handle,
+	const gss_cred_id_t input_cred_handle,
 	const gss_name_t desired_name,
-	const gss_OID_set desired_mechs,
+	const gss_OID desired_mech,
 	gss_cred_usage_t cred_usage,
 	OM_uint32 initiator_time_req,
 	OM_uint32 acceptor_time_req,
@@ -52,9 +52,9 @@ wrap_gss_add_cred(void *fp,
 {
 	return ((OM_uint32(*) (
 		OM_uint32 *,
-		gss_cred_id_t *,
+		const gss_cred_id_t,
 		const gss_name_t,
-		const gss_OID_set,
+		const gss_OID,
 		gss_cred_usage_t,
 		OM_uint32,
 		OM_uint32,
@@ -66,7 +66,7 @@ wrap_gss_add_cred(void *fp,
 		minor_status,
 		input_cred_handle,
 		desired_name,
-		desired_mechs,
+		desired_mech,
 		cred_usage,
 		initiator_time_req,
 		acceptor_time_req,
@@ -155,10 +155,6 @@ func (lib *Lib) NewCredId() *CredId {
 	}
 }
 
-func (lib *Lib) GSS_C_NO_CREDENTIAL() *CredId {
-	return lib.NewCredId()
-}
-
 // AcquireCred implements gss_acquire_cred API, as per
 // https://tools.ietf.org/html/rfc2743#page-31.  outputCredHandle, actualMechs
 // must be .Release()-ed by the caller
@@ -193,7 +189,7 @@ func (lib *Lib) AcquireCred(desiredName *Name, timeReq time.Duration,
 // https://tools.ietf.org/html/rfc2743#page-36.  outputCredHandle, actualMechs
 // must be .Release()-ed by the caller
 func (lib *Lib) AddCred(inputCredHandle *CredId,
-	desiredName *Name, desiredMechs *OIDSet, credUsage CredUsage,
+	desiredName *Name, desiredMech *OID, credUsage CredUsage,
 	initiatorTimeReq time.Duration, acceptorTimeReq time.Duration) (
 	outputCredHandle *CredId, actualMechs *OIDSet,
 	initiatorTimeRec time.Duration, acceptorTimeRec time.Duration,
@@ -207,9 +203,9 @@ func (lib *Lib) AddCred(inputCredHandle *CredId,
 
 	maj := C.wrap_gss_add_cred(lib.Fp_gss_add_cred,
 		&min,
-		&inputCredHandle.C_gss_cred_id_t,
+		inputCredHandle.C_gss_cred_id_t,
 		desiredName.C_gss_name_t,
-		desiredMechs.C_gss_OID_set,
+		desiredMech.C_gss_OID,
 		C.gss_cred_usage_t(credUsage),
 		C.OM_uint32(initiatorTimeReq.Seconds()),
 		C.OM_uint32(acceptorTimeReq.Seconds()),

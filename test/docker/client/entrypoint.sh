@@ -46,7 +46,7 @@ echo ${USER_PASSWORD} | kinit -V ${USER_NAME}@${REALM_NAME} >/dev/null
 # --test.benchtime=2s
 $TEST_DIR/test \
 	--test.v=true \
-	--service-name=${SERVICE_NAME}@${REALM_NAME} \
+	--service-name=${SERVICE_NAME} \
 	--service-address=$SERVICE_PORT_80_TCP_ADDR:$SERVICE_PORT_80_TCP_PORT \
 	--gssapi-path=$GSSAPI_PATH \
         2>&1

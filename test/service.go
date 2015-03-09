@@ -23,14 +23,14 @@ func Service(c *Context) error {
 	}
 	defer nameBuf.Release()
 
-	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME())
+	name, err := nameBuf.Name(c.GSS_KRB5_NT_PRINCIPAL_NAME)
 	if err != nil {
 		return err
 	}
 	defer name.Release()
 
 	cred, actualMechs, _, err := c.AcquireCred(name,
-		gssapi.GSS_C_INDEFINITE, c.GSS_C_NO_OID_SET(), gssapi.GSS_C_ACCEPT)
+		gssapi.GSS_C_INDEFINITE, c.GSS_C_NO_OID_SET, gssapi.GSS_C_ACCEPT)
 	actualMechs.Release()
 	if err != nil {
 		return err
@@ -87,8 +87,8 @@ func filter(c *Context,
 	}
 
 	ctx, srcName, _, outputToken, _, _, delegatedCredHandle, err :=
-		c.AcceptSecContext(c.GSS_C_NO_CONTEXT(),
-			cred, inputToken, gssapi.GSS_C_NO_CHANNEL_BINDINGS)
+		c.AcceptSecContext(c.GSS_C_NO_CONTEXT,
+			cred, inputToken, c.GSS_C_NO_CHANNEL_BINDINGS)
 
 	//TODO: special case handling of GSS_S_CONTINUE_NEEDED
 	// but it doesn't change the logic, still fail

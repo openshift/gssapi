@@ -71,9 +71,10 @@ function build_image() {
                 if [[ "$func" != "" ]]; then
                         (${func})
                 fi
+
                 $DOCKER build \
-                        --quiet \
                         --rm \
+                        --quiet \
                         --tag=${img} \
                         $DOCKER_DIR/${comp}
         fi
