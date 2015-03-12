@@ -58,7 +58,7 @@ func (lib *Lib) MakeOIDBytes(data []byte) (*OID, error) {
 	if e == nil {
 		return nil, ErrMallocFailed
 	}
-	C.memcpy(e, (unsafe.Pointer)(&data[0]), l)
+	C.memmove(e, (unsafe.Pointer)(&data[0]), l)
 
 	oid.C_gss_OID = C.gss_OID(s)
 	oid.alloc = allocMalloc

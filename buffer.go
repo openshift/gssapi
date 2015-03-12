@@ -97,7 +97,7 @@ func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
 	if b == nil {
 		return nil, ErrMallocFailed
 	}
-	C.memcpy(c, (unsafe.Pointer)(&data[0]), l)
+	C.memmove(c, (unsafe.Pointer)(&data[0]), l)
 
 	b.C_gss_buffer_t.length = l
 	b.C_gss_buffer_t.value = c
