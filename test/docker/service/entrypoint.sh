@@ -12,6 +12,7 @@ cat /tmp/krb5.conf.template \
 
 exec /opt/go-gssapi-test-service/test \
 	--test.v=true \
+        --debug=true \
         --service=true \
 	--service-name=${SERVICE_NAME} \
 	--service-address=:80 \

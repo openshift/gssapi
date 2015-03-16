@@ -66,6 +66,7 @@ type CtxId struct {
 // Aliases for the simple types
 type CredUsage C.gss_cred_usage_t // C.int
 type ChannelBindingAddressFamily uint32
+type QOP C.OM_uint32
 
 // A struct pointer technically, but not really used yet, and it's a static,
 // non-releaseable struct so an alias will suffice
