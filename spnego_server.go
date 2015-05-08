@@ -16,18 +16,8 @@ type ServerNegotiator interface {
 	AcquireCred(string) (*CredId, error)
 
 	// Negotiate handles the negotiation with the client.
-	Negotiate(*CredId, Header, Header) (string, int, error)
+	Negotiate(*CredId, http.Header, http.Header) (string, int, error)
 }
-
-// A Header is an interface designed to remove the dependency upon net/http from
-// the SPNEGO implementations.
-type Header interface {
-	Get(string) string
-
-	Set(string, string)
-}
-
-var _ Header = http.Header(nil)
 
 // A KerberizedServer allows a server to negotiate authentication over SPNEGO
 // with a client.
@@ -66,7 +56,7 @@ func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
 // be invoked multiple times; a 200 or 400 response code are terminating
 // conditions, whereas a 401 means that the client should respond to the
 // challenge that we send.
-func (k KerberizedServer) Negotiate(cred *CredId, inHeader, outHeader Header) (string, int, error) {
+func (k KerberizedServer) Negotiate(cred *CredId, inHeader, outHeader http.Header) (string, int, error) {
 	negotiate, inputToken := k.CheckSPNEGONegotiate(inHeader, "Authorization")
 	defer inputToken.Release()
 

@@ -5,10 +5,11 @@ package gssapi
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
-func (lib *Lib) AddSPNEGONegotiate(h Header, name string, token *Buffer) {
+func (lib *Lib) AddSPNEGONegotiate(h http.Header, name string, token *Buffer) {
 	if name == "" {
 		return
 	}
@@ -21,7 +22,7 @@ func (lib *Lib) AddSPNEGONegotiate(h Header, name string, token *Buffer) {
 	h.Set(name, v)
 }
 
-func (lib *Lib) CheckSPNEGONegotiate(h Header, name string) (present bool, token *Buffer) {
+func (lib *Lib) CheckSPNEGONegotiate(h http.Header, name string) (present bool, token *Buffer) {
 	var err error
 	defer func() {
 		if err != nil {
