@@ -127,12 +127,15 @@ wrap_gss_duplicate_name(void *fp,
 */
 import "C"
 
+// NewName initializes a new principal name.
 func (lib *Lib) NewName() *Name {
 	return &Name{
 		Lib: lib,
 	}
 }
 
+// GSS_C_NO_NAME is a Name where the value is NULL, used to request special
+// behavior in some GSSAPI calls.
 func (lib *Lib) GSS_C_NO_NAME() *Name {
 	return lib.NewName()
 }
@@ -192,7 +195,7 @@ func (n Name) Display() (name string, oid *OID, err error) {
 	return b.String(), oid, err
 }
 
-// Go-friendly version of Display ("" on error)
+// String displays a Go-friendly version of a name. ("" on error)
 func (n Name) String() string {
 	s, _, _ := n.Display()
 	return s

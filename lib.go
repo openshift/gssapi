@@ -86,6 +86,7 @@ var severityNames = []string{
 	"Debug",
 }
 
+// String returns the string name of a log Severity.
 func (s Severity) String() string {
 	if s >= MaxSeverity {
 		return ""
@@ -98,9 +99,10 @@ type Printer interface {
 	Print(a ...interface{})
 }
 
+// Options denote the options used to load a GSSAPI library. If a user supplies
+// a LibPath, we use that. Otherwise, based upon the default and the current OS,
+// we try to construct the library path.
 type Options struct {
-	// if LibPath != "", use it as is. Otherwise construct the library
-	// name based on LoadDefault, and the current OS
 	LibPath     string
 	Krb5Config  string
 	Krb5Ktname  string
@@ -109,9 +111,9 @@ type Options struct {
 	Printers []Printer `json:"-"`
 }
 
-// ftable fields will be initialized to the corresponding function pointers from the
-// GSSAPI library. They must be of form Fp_function_name (Capital 'F' so that
-// we can use reflect.
+// ftable fields will be initialized to the corresponding function pointers from
+// the GSSAPI library. They must be of form Fp_function_name (Capital 'F' so
+// that we can use reflect.
 type ftable struct {
 	// buffer.go
 	Fp_gss_release_buffer unsafe.Pointer
@@ -167,6 +169,7 @@ type ftable struct {
 	// Fp_gsskrb5_register_acceptor_identity unsafe.Pointer
 }
 
+// constants are a number of constant initialized in initConstants.
 type constants struct {
 	GSS_C_NO_BUFFER     *Buffer
 	GSS_C_NO_OID        *OID
@@ -194,7 +197,8 @@ type constants struct {
 	GSS_C_NO_CHANNEL_BINDINGS ChannelBindings // implicitly initialized as nil
 }
 
-// Lib encapsulates both the GSSAPI and the library dlopen()'d for it.
+// Lib encapsulates both the GSSAPI and the library dlopen()'d for it. The
+// handle represents the dynamically-linked gssapi library handle.
 type Lib struct {
 
 	// Should contain a gssapi.Printer for each severity level to be
@@ -211,6 +215,7 @@ const (
 	fpPrefix = "Fp_"
 )
 
+// Path returns the chosen gssapi library path that we're looking for.
 func (o *Options) Path() string {
 	switch {
 	case o.LibPath != "":
@@ -225,6 +230,8 @@ func (o *Options) Path() string {
 	return ""
 }
 
+// Load attempts to load a dynamically-linked gssapi library from the path
+// specified by the supplied Options.
 func Load(o *Options) (*Lib, error) {
 	if o == nil {
 		o = &Options{}
@@ -275,6 +282,7 @@ func Load(o *Options) (*Lib, error) {
 	return lib, nil
 }
 
+// Unload closes the handle to the dynamically-linked gssapi library.
 func (lib *Lib) Unload() error {
 	if lib == nil || lib.handle == nil {
 		return nil
@@ -303,7 +311,8 @@ func appendOSExt(path string) string {
 	return path
 }
 
-// Assumes that the caller executes runtime.LockOSThread
+// populateFunctions ranges over the library's ftable, initializing each
+// function inside. Assumes that the caller executes runtime.LockOSThread.
 func (lib *Lib) populateFunctions() error {
 	libT := reflect.TypeOf(lib.ftable)
 	functionsV := reflect.ValueOf(lib).Elem().FieldByName("ftable")
@@ -334,6 +343,7 @@ func (lib *Lib) populateFunctions() error {
 	return nil
 }
 
+// initConstants sets the initial values of a library's set of 'constants'.
 func (lib *Lib) initConstants() {
 	lib.GSS_C_NO_BUFFER = &Buffer{
 		Lib: lib,
@@ -364,6 +374,7 @@ func (lib *Lib) initConstants() {
 	lib.GSS_MECH_NTLMSSP = &OID{Lib: lib, C_gss_OID: C._GSS_MECH_NTLMSSP}
 }
 
+// Print outputs a log line to the specified severity.
 func (lib *Lib) Print(level Severity, a ...interface{}) {
 	if lib == nil || lib.Printers == nil || level >= Severity(len(lib.Printers)) {
 		return

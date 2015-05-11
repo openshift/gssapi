@@ -20,6 +20,7 @@ const (
 	allocGSSAPI
 )
 
+// A Buffer is an underlying C buffer represented in Golang. Must be .Release'd.
 type Buffer struct {
 	*Lib
 	C_gss_buffer_t C.gss_buffer_t
@@ -29,16 +30,18 @@ type Buffer struct {
 	alloc int
 }
 
+// A Name represents a binary string labeling a security principal. In the case
+// of Kerberos, this could be a name like 'user@EXAMPLE.COM'.
 type Name struct {
 	*Lib
 	C_gss_name_t C.gss_name_t
 }
 
-// OID is the wrapper for gss_OID_desc type. IMPORTANT: In gssapi OIDs are not
-// released explicitly, only as part of an OIDSet. However we malloc the OID
+// An OID is the wrapper for gss_OID_desc type. IMPORTANT: In gssapi, OIDs are
+// not released explicitly, only as part of an OIDSet. However we malloc the OID
 // bytes ourselves, so need to free them. To keep it simple, assume that OIDs
-// obtained from gogssapi must be Release()-ed. It will be safely ignored on
-// those allocated by gssapi
+// obtained from gssapi must be Release()-ed. It will be safely ignored on those
+// allocated by gssapi
 type OID struct {
 	*Lib
 	C_gss_OID C.gss_OID
@@ -48,16 +51,21 @@ type OID struct {
 	alloc int
 }
 
+// An OIDSet is a set of OIDs.
 type OIDSet struct {
 	*Lib
 	C_gss_OID_set C.gss_OID_set
 }
 
+// A CredId represents information like a cryptographic secret. In Kerberos,
+// this likely represents a keytab.
 type CredId struct {
 	*Lib
 	C_gss_cred_id_t C.gss_cred_id_t
 }
 
+// A CtxId represents a security context. Contexts maintain the state of one end
+// of an authentication protocol.
 type CtxId struct {
 	*Lib
 	C_gss_ctx_id_t C.gss_ctx_id_t

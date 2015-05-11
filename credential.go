@@ -149,6 +149,7 @@ import (
 	"time"
 )
 
+// NewCredId instantiates a new credential.
 func (lib *Lib) NewCredId() *CredId {
 	return &CredId{
 		Lib: lib,
@@ -156,7 +157,7 @@ func (lib *Lib) NewCredId() *CredId {
 }
 
 // AcquireCred implements gss_acquire_cred API, as per
-// https://tools.ietf.org/html/rfc2743#page-31.  outputCredHandle, actualMechs
+// https://tools.ietf.org/html/rfc2743#page-31. outputCredHandle, actualMechs
 // must be .Release()-ed by the caller
 func (lib *Lib) AcquireCred(desiredName *Name, timeReq time.Duration,
 	desiredMechs *OIDSet, credUsage CredUsage) (outputCredHandle *CredId,
@@ -186,7 +187,7 @@ func (lib *Lib) AcquireCred(desiredName *Name, timeReq time.Duration,
 }
 
 // AddCred implements gss_add_cred API, as per
-// https://tools.ietf.org/html/rfc2743#page-36.  outputCredHandle, actualMechs
+// https://tools.ietf.org/html/rfc2743#page-36. outputCredHandle, actualMechs
 // must be .Release()-ed by the caller
 func (lib *Lib) AddCred(inputCredHandle *CredId,
 	desiredName *Name, desiredMech *OID, credUsage CredUsage,
@@ -227,7 +228,7 @@ func (lib *Lib) AddCred(inputCredHandle *CredId,
 }
 
 // InquireCred implements gss_inquire_cred API, as per
-// https://tools.ietf.org/html/rfc2743#page-34. name, mechanism must be
+// https://tools.ietf.org/html/rfc2743#page-34. name and mechanisms must be
 // .Release()-ed by the caller
 func (lib *Lib) InquireCred(credHandle *CredId) (
 	name *Name, lifetime time.Duration, credUsage CredUsage, mechanisms *OIDSet,
@@ -291,6 +292,7 @@ func (lib *Lib) InquireCredByMech(credHandle *CredId, mechType *OID) (
 		nil
 }
 
+// Release frees a credential.
 func (c *CredId) Release() error {
 	if c == nil || c.C_gss_cred_id_t == nil {
 		return nil

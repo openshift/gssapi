@@ -18,8 +18,8 @@ import (
 	"time"
 )
 
+// Flag bits for context-level services
 const (
-	// Flag bits for context-level services
 	GSS_C_DELEG_FLAG      uint32 = 1
 	GSS_C_MUTUAL_FLAG            = 2
 	GSS_C_REPLAY_FLAG            = 4

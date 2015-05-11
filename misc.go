@@ -25,6 +25,8 @@ wrap_gss_indicate_mechs(void *fp,
 */
 import "C"
 
+// IndicateMechs implements the gss_Indicate_mechs call, according to https://tools.ietf.org/html/rfc2743#page-69.
+// This returns an OIDSet of the Mechs supported on the current OS.
 func (lib *Lib) IndicateMechs() (*OIDSet, error) {
 
 	mechs := lib.NewOIDSet()
