@@ -63,6 +63,8 @@ const (
 	maskSUPPINFO = 0x0000FFFF
 )
 
+// Status values are returned by gssapi calls to indicate the result of a call.
+// Declared according to: https://tools.ietf.org/html/rfc2743#page-17
 const (
 	GSS_S_COMPLETE MajorStatus = 0
 
@@ -100,53 +102,63 @@ const (
 // These are GSSAPI-defined:
 type MajorStatus uint32
 
-// Equivalent to C GSS_CALLING_ERROR() macro
+// CallingError is equivalent to C GSS_CALLING_ERROR() macro.
 func (st MajorStatus) CallingError() MajorStatus {
 	return st & maskCALLING
 }
 
-// Equivalent to C GSS_ROUTINE_ERROR() macro
+// RoutineError is equivalent to C GSS_ROUTINE_ERROR() macro.
 func (st MajorStatus) RoutineError() MajorStatus {
 	return st & maskROUTINE
 }
 
-// Equivalent to C GSS_SUPPLEMENTARY_INFO() macro
+// SupplementaryInfo is equivalent to C GSS_SUPPLEMENTARY_INFO() macro.
 func (st MajorStatus) SupplementaryInfo() MajorStatus {
 	return st & maskSUPPINFO
 }
 
-// Equivalent to C GSS_ERROR() macro
-// Not 'Error' because that's special in Go conventions
+// IsError is equivalent to C GSS_ERROR() macro. Not written as 'Error' because
+// that's special in Go conventions. (i.e. conforming to error interface)
 func (st MajorStatus) IsError() bool {
 	return st&(maskCALLING|maskROUTINE) != 0
 }
 
+// ContinueNeeded is equivalent to a C bitfield set test against the
+// GSS_S_CONTINUE_NEEDED macro.
 func (st MajorStatus) ContinueNeeded() bool {
 	return st&field_GSS_S_CONTINUE_NEEDED != 0
 }
 
+// DuplicateToken is equivalent to a C bitfield set test against the
+// GSS_S_DUPLICATE_TOKEN macro.
 func (st MajorStatus) DuplicateToken() bool {
 	return st&field_GSS_S_DUPLICATE_TOKEN != 0
 }
 
+// OldToken is equivalent to a C bitfield set test against the
+// GSS_S_OLD_TOKEN macro.
 func (st MajorStatus) OldToken() bool {
 	return st&field_GSS_S_OLD_TOKEN != 0
 }
 
+// UnseqToken is equivalent to a C bitfield set test against the
+// GSS_S_UNSEQ_TOKEN macro.
 func (st MajorStatus) UnseqToken() bool {
 	return st&field_GSS_S_UNSEQ_TOKEN != 0
 }
 
+// GapToken is equivalent to a C bitfield set test against the
+// GSS_S_GAP_TOKEN macro.
 func (st MajorStatus) GapToken() bool {
 	return st&field_GSS_S_GAP_TOKEN != 0
 }
 
 // Error is designed to serve both as an error, and as a general gssapi status
-// container. If Major is GSS_S_FAILURE then information will be in Minor.
+// container. If Major is GSS_S_FAILURE, then information will be in Minor.
 // The GoError method will return a nil if it doesn't represent a real error.
 type Error struct {
 	// gssapi lib binding, so that we can convert the results of an
-	// operation to a string for diagnosis
+	// operation to a string for diagnosis.
 	*Lib
 
 	// Specified by gssapi
@@ -156,6 +168,7 @@ type Error struct {
 	Minor C.OM_uint32
 }
 
+// MakeError creates a golang Error object from a gssapi major & minor status.
 func (lib *Lib) MakeError(major, minor C.OM_uint32) *Error {
 	return &Error{
 		Lib:   lib,
@@ -164,6 +177,7 @@ func (lib *Lib) MakeError(major, minor C.OM_uint32) *Error {
 	}
 }
 
+// GoError returns an untyped error interface object.
 func (e *Error) GoError() error {
 	if e.Major.IsError() {
 		return e
@@ -171,6 +185,7 @@ func (e *Error) GoError() error {
 	return nil
 }
 
+// Error returns a string representation of an Error object.
 func (e *Error) Error() string {
 	messages := []string{}
 	nOther := 0

@@ -57,10 +57,11 @@ import (
 	"unsafe"
 )
 
+// ErrMallocFailed is returned when the malloc call has failed.
 var ErrMallocFailed = errors.New("malloc failed, out of memory?")
 
-// MakeBufferMalloc returns a Buffer with an empty malloc-ed gss_buffer_desc in
-// it. The return value must be .Release()-ed
+// MakeBuffer returns a Buffer with an empty malloc-ed gss_buffer_desc in it.
+// The return value must be .Release()-ed
 func (lib *Lib) MakeBuffer(alloc int) (*Buffer, error) {
 	s := C.malloc(C.gss_buffer_size)
 	if s == nil {
@@ -76,14 +77,13 @@ func (lib *Lib) MakeBuffer(alloc int) (*Buffer, error) {
 	return b, nil
 }
 
-// MakeBufferBytes makes a Buffer encapsulating a byte slice
+// MakeBufferBytes makes a Buffer encapsulating a byte slice.
 func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
 	if len(data) == 0 {
 		return lib.GSS_C_NO_BUFFER, nil
 	}
 
 	// have to allocate the memory in C land and copy
-
 	b, err := lib.MakeBuffer(allocMalloc)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (lib *Lib) MakeBufferBytes(data []byte) (*Buffer, error) {
 	return b, nil
 }
 
-// MakeBufferBytes makes a Buffer encapsulating the contents of a string
+// MakeBufferString makes a Buffer encapsulating the contents of a string.
 func (lib *Lib) MakeBufferString(content string) (*Buffer, error) {
 	return lib.MakeBufferBytes([]byte(content))
 }
@@ -140,7 +140,7 @@ func (b *Buffer) Release() error {
 	return nil
 }
 
-// Length returns the number of bytes in the Buffer
+// Length returns the number of bytes in the Buffer.
 func (b *Buffer) Length() int {
 	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
 		return 0
@@ -148,7 +148,7 @@ func (b *Buffer) Length() int {
 	return int(b.C_gss_buffer_t.length)
 }
 
-// Bytes returns teh contents of a Buffer as a byte slice
+// Bytes returns the contents of a Buffer as a byte slice.
 func (b *Buffer) Bytes() []byte {
 	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
 		return make([]byte, 0)
@@ -156,7 +156,7 @@ func (b *Buffer) Bytes() []byte {
 	return C.GoBytes(b.C_gss_buffer_t.value, C.int(b.C_gss_buffer_t.length))
 }
 
-// String returns the contents of a Buffer as a string
+// String returns the contents of a Buffer as a string.
 func (b *Buffer) String() string {
 	if b == nil || b.C_gss_buffer_t == nil || b.C_gss_buffer_t.length == 0 {
 		return ""
@@ -164,8 +164,8 @@ func (b *Buffer) String() string {
 	return C.GoStringN((*C.char)(b.C_gss_buffer_t.value), C.int(b.C_gss_buffer_t.length))
 }
 
-// Name converts a Buffer representing a name into a Name (internal
-// opaque representation) using the specified nametype
+// Name converts a Buffer representing a name into a Name (internal opaque
+// representation) using the specified nametype.
 func (b Buffer) Name(nametype *OID) (*Name, error) {
 	var min C.OM_uint32
 	var result C.gss_name_t
@@ -184,6 +184,7 @@ func (b Buffer) Name(nametype *OID) (*Name, error) {
 	return n, nil
 }
 
+// Equal determines if a Buffer receiver is equivalent to the supplied Buffer.
 func (b *Buffer) Equal(other *Buffer) bool {
 	isEqual := C.wrap_gss_buffer_equal(b.C_gss_buffer_t, other.C_gss_buffer_t)
 	return isEqual != 0

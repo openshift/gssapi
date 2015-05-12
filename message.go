@@ -105,10 +105,8 @@ wrap_gss_unwrap(void *fp,
 */
 import "C"
 
-import ()
-
-// GetMIC implements gss_get_mic API, as per
-// messageToken  must be .Release()-ed by the caller
+// GetMIC implements gss_GetMIC API, as per https://tools.ietf.org/html/rfc2743#page-63.
+// messageToken must be .Release()-ed by the caller.
 func (ctx *CtxId) GetMIC(qopReq QOP, messageBuffer *Buffer) (
 	messageToken *Buffer, err error) {
 
@@ -134,7 +132,7 @@ func (ctx *CtxId) GetMIC(qopReq QOP, messageBuffer *Buffer) (
 	return token, nil
 }
 
-// VerifyMIC implements gss_verify_mic API, as per
+// VerifyMIC implements gss_VerifyMIC API, as per https://tools.ietf.org/html/rfc2743#page-64.
 func (ctx *CtxId) VerifyMIC(messageBuffer *Buffer, tokenBuffer *Buffer) (
 	qopState QOP, err error) {
 
@@ -156,7 +154,7 @@ func (ctx *CtxId) VerifyMIC(messageBuffer *Buffer, tokenBuffer *Buffer) (
 	return QOP(qop), nil
 }
 
-// Wrap implements gss_wrap API, as per
+// Wrap implements gss_wrap API, as per https://tools.ietf.org/html/rfc2743#page-65.
 // outputMessageBuffer must be .Release()-ed by the caller
 func (ctx *CtxId) Wrap(
 	confReq bool, qopReq QOP, inputMessageBuffer *Buffer) (
@@ -195,8 +193,8 @@ func (ctx *CtxId) Wrap(
 		nil
 }
 
-// Unwrap implements gss_unwrap API, as per
-//  must be .Release()-ed by the caller
+// Unwrap implements gss_unwrap API, as per https://tools.ietf.org/html/rfc2743#page-66.
+// outputMessageBuffer must be .Release()-ed by the caller
 func (ctx *CtxId) Unwrap(
 	inputMessageBuffer *Buffer) (
 	outputMessageBuffer *Buffer, confState bool, qopState QOP, err error) {

@@ -158,7 +158,9 @@ func (lib *Lib) NewCtxId() *CtxId {
 	}
 }
 
-// targetName is the only mandatory input?
+// InitSecContext initiates a security context. Usually invoked by the client.
+// A Context (CtxId) describes the state at one end of an authentication
+// protocol.
 func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 	targetName *Name, mechType *OID, reqFlags uint32, timeReq time.Duration,
 	inputChanBindings ChannelBindings, inputToken *Buffer) (
@@ -227,6 +229,8 @@ func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 		nil
 }
 
+// AcceptSecContext accepts an initialized security context. Usually called by
+// the server.
 func (lib *Lib) AcceptSecContext(
 	ctxIn *CtxId, acceptorCredHandle *CredId, inputToken *Buffer,
 	inputChanBindings ChannelBindings) (
@@ -290,7 +294,8 @@ func (lib *Lib) AcceptSecContext(
 		time.Duration(timerec) * time.Second, delegatedCredHandle, nil
 }
 
-// I decided not to implement the outputToken parameter since its use is no
+// DeleteSecContext frees a security context.
+// NB: I decided not to implement the outputToken parameter since its use is no
 // longer recommended, and it would have to be Released by the caller
 func (ctx *CtxId) DeleteSecContext() error {
 	if ctx == nil || ctx.C_gss_ctx_id_t == nil {
@@ -307,10 +312,12 @@ func (ctx *CtxId) DeleteSecContext() error {
 	return ctx.MakeError(maj, min).GoError()
 }
 
+// Release is an alias for DeleteSecContext.
 func (ctx *CtxId) Release() error {
 	return ctx.DeleteSecContext()
 }
 
+// InquireContext returns fields about a security context.
 func (ctx *CtxId) InquireContext() (
 	srcName *Name, targetName *Name, lifetimeRec time.Duration, mechType *OID,
 	ctxFlags uint64, locallyInitiated bool, open bool, err error) {
@@ -353,9 +360,3 @@ func (ctx *CtxId) InquireContext() (
 
 	return srcName, targetName, lifetimeRec, mechType, ctxFlags, locallyInitiated, open, nil
 }
-
-// TODO: gss_process_context_token
-// TODO: gss_context_time
-// TODO: gss_wrap_size_limit
-// TODO: gss_export_sec_context
-// TODO: gss_import_sec_context

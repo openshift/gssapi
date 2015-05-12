@@ -38,12 +38,13 @@ import (
 	"unsafe"
 )
 
+// NewOID initializes a new OID. (Object Identifier)
 func (lib *Lib) NewOID() *OID {
 	return &OID{Lib: lib}
 }
 
-// MakeOIDBytes makes an OID encapsulating a byte slice. Note that it does not duplicate
-// the data, points to it directly
+// MakeOIDBytes makes an OID encapsulating a byte slice. Note that it does not
+// duplicate the data, but rather it points to it directly.
 func (lib *Lib) MakeOIDBytes(data []byte) (*OID, error) {
 	oid := lib.NewOID()
 
@@ -72,6 +73,7 @@ func (lib *Lib) MakeOIDBytes(data []byte) (*OID, error) {
 	return oid, nil
 }
 
+// MakeOIDString makes an OID from a string.
 func (lib *Lib) MakeOIDString(data string) (*OID, error) {
 	return lib.MakeOIDBytes([]byte(data))
 }
@@ -95,6 +97,7 @@ func (oid *OID) Release() error {
 	return nil
 }
 
+// Bytes displays the bytes of an OID.
 func (oid OID) Bytes() []byte {
 	var l C.OM_uint32
 	var p *C.char
@@ -104,6 +107,7 @@ func (oid OID) Bytes() []byte {
 	return C.GoBytes(unsafe.Pointer(p), C.int(l))
 }
 
+// String displays a string representation of an OID.
 func (oid *OID) String() string {
 	var l C.OM_uint32
 	var p *C.char

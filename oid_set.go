@@ -72,6 +72,7 @@ import (
 	"strings"
 )
 
+// NewOIDSet constructs a new empty OID set.
 func (lib *Lib) NewOIDSet() *OIDSet {
 	return &OIDSet{
 		Lib: lib,
@@ -79,12 +80,7 @@ func (lib *Lib) NewOIDSet() *OIDSet {
 	}
 }
 
-// CreateEmptyOIDSet makes an empty OIDSet
-func (lib *Lib) MakeEmptyOIDSet() (s *OIDSet, err error) {
-	return lib.MakeOIDSet()
-}
-
-// CreateOIDSet makes an OIDSet prepopulated with the given OIDs.
+// MakeOIDSet makes an OIDSet prepopulated with the given OIDs.
 func (lib *Lib) MakeOIDSet(oids ...*OID) (s *OIDSet, err error) {
 	s = &OIDSet{
 		Lib: lib,
@@ -132,7 +128,7 @@ func (s *OIDSet) Add(oids ...*OID) (err error) {
 	return nil
 }
 
-// Contains (gss_test_oid_set_member) checks if an OID is present OIDSet.
+// TestOIDSetMember a wrapper to determine if an OIDSet contains an OID.
 func (s *OIDSet) TestOIDSetMember(oid *OID) (contains bool, err error) {
 	var min C.OM_uint32
 	var isPresent C.int
@@ -147,12 +143,13 @@ func (s *OIDSet) TestOIDSetMember(oid *OID) (contains bool, err error) {
 	return isPresent != 0, nil
 }
 
+// Contains (gss_test_oid_set_member) checks if an OID is present OIDSet.
 func (s *OIDSet) Contains(oid *OID) bool {
 	contains, _ := s.TestOIDSetMember(oid)
 	return contains
 }
 
-// Returns the number of OIDs in the set
+// Length returns the number of OIDs in a set.
 func (s *OIDSet) Length() int {
 	if s == nil {
 		return 0
@@ -160,8 +157,8 @@ func (s *OIDSet) Length() int {
 	return int(s.C_gss_OID_set.count)
 }
 
-// Returns a specific OID from the set. The memory will be released when the
-// set itself is released
+// Get returns a specific OID from the set. The memory will be released when the
+// set itself is released.
 func (s *OIDSet) Get(index int) (*OID, error) {
 	if s == nil || index < 0 || index >= int(s.C_gss_OID_set.count) {
 		return nil, fmt.Errorf("index %d out of bounds", index)
