@@ -16,6 +16,19 @@ in what form the TGT is stored.
 
 What do you use it for? Let us know!
 
+## Testing
+
+Tests in the main `gssapi` repository can be run using the built-in `go test`.
+
+To run an integrated test against a live Heimdal Kerberos Domain Controller,
+`cd test` and bring up [Docker](https://www.docker.com/), (or
+[boot2docker](http://boot2docker.io/)). Then, run `./run-heimdal.sh`. This will
+run some go tests using three Docker images: a client, a service, and a domain
+controller. The service will receive a generated keytab file, and the client
+will point to the domain controller for authentication.
+
+**NOTE:** to run Docker tests, your `GOROOT` environment variable MUST be set.
+
 ## TODO
 
 See our [TODO doc](TODO.md) on stuff you can do to help. We welcome
