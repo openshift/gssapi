@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/apcera/gssapi"
+	"github.com/apcera/gssapi/spnego"
 )
 
 func initClientContext(t *testing.T, method, path string,
@@ -52,7 +53,7 @@ func initClientContext(t *testing.T, method, path string,
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.AddSPNEGONegotiate(r.Header, "Authorization", token)
+	spnego.AddSPNEGONegotiate(r.Header, "Authorization", token)
 
 	return ctx, r
 }
