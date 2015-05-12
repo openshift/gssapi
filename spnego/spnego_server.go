@@ -2,34 +2,36 @@
 
 // This is intended to give an interface for Kerberized servers to negotiate
 // with clients using SPNEGO. A reference implementation is provided below.
-package gssapi
+package spnego
 
 import (
 	"errors"
 	"net/http"
+
+	"github.com/apcera/gssapi"
 )
 
 // A ServerNegotiator is an interface that defines minimal functionality for
 // SPNEGO and credential issuance using GSSAPI from the server side.
 type ServerNegotiator interface {
 	// AcquireCred acquires a credential from the server's environment.
-	AcquireCred(string) (*CredId, error)
+	AcquireCred(string) (*gssapi.CredId, error)
 
 	// Negotiate handles the negotiation with the client.
-	Negotiate(*CredId, http.Header, http.Header) (string, int, error)
+	Negotiate(*gssapi.CredId, http.Header, http.Header) (string, int, error)
 }
 
 // A KerberizedServer allows a server to negotiate authentication over SPNEGO
 // with a client.
 type KerberizedServer struct {
-	*Lib
+	*gssapi.Lib
 }
 
 var _ ServerNegotiator = KerberizedServer{}
 
 // AcquireCred acquires a Kerberos credential (keytab) from environment. The
 // CredId MUST be released by the caller.
-func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
+func (k KerberizedServer) AcquireCred(serviceName string) (*gssapi.CredId, error) {
 	nameBuf, err := k.MakeBufferString(serviceName)
 	if err != nil {
 		return nil, err
@@ -43,7 +45,7 @@ func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
 	defer name.Release()
 
 	cred, actualMechs, _, err := k.Lib.AcquireCred(name,
-		GSS_C_INDEFINITE, k.GSS_C_NO_OID_SET, GSS_C_ACCEPT)
+		gssapi.GSS_C_INDEFINITE, k.GSS_C_NO_OID_SET, gssapi.GSS_C_ACCEPT)
 	if err != nil {
 		return nil, err
 	}
@@ -56,15 +58,15 @@ func (k KerberizedServer) AcquireCred(serviceName string) (*CredId, error) {
 // be invoked multiple times; a 200 or 400 response code are terminating
 // conditions, whereas a 401 means that the client should respond to the
 // challenge that we send.
-func (k KerberizedServer) Negotiate(cred *CredId, inHeader, outHeader http.Header) (string, int, error) {
-	negotiate, inputToken := k.CheckSPNEGONegotiate(inHeader, "Authorization")
+func (k KerberizedServer) Negotiate(cred *gssapi.CredId, inHeader, outHeader http.Header) (string, int, error) {
+	negotiate, inputToken := CheckSPNEGONegotiate(k.Lib, inHeader, "Authorization")
 	defer inputToken.Release()
 
 	// Here, challenge the client to initiate the security context. The first
 	// request a client has made will often be unauthenticated, so we return a
 	// 401, which the client handles.
 	if !negotiate || inputToken.Length() == 0 {
-		k.AddSPNEGONegotiate(outHeader, "WWW-Authenticate", inputToken)
+		AddSPNEGONegotiate(outHeader, "WWW-Authenticate", inputToken)
 		return "", http.StatusUnauthorized, errors.New("SPNEGO: unauthorized")
 	}
 

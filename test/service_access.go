@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/apcera/gssapi"
+	"github.com/apcera/gssapi/spnego"
 )
 
 func HandleAccess(c *Context, w http.ResponseWriter, r *http.Request) (code int, message string) {
@@ -27,9 +28,9 @@ func allowed(c *Context, w http.ResponseWriter, r *http.Request) (
 
 	// returning a 401 with a challenge, but no token will make the client
 	// initiate security context and re-submit with a non-empty Authorization
-	negotiate, inputToken := c.CheckSPNEGONegotiate(r.Header, "Authorization")
+	negotiate, inputToken := spnego.CheckSPNEGONegotiate(c.Lib, r.Header, "Authorization")
 	if !negotiate || inputToken.Length() == 0 {
-		c.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", nil)
+		spnego.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", nil)
 		return nil, http.StatusUnauthorized, "no input token provided"
 	}
 
@@ -48,6 +49,6 @@ func allowed(c *Context, w http.ResponseWriter, r *http.Request) (
 	srcName.Release()
 	delegatedCredHandle.Release()
 
-	c.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", outputToken)
+	spnego.AddSPNEGONegotiate(w.Header(), "WWW-Authenticate", outputToken)
 	return ctx, http.StatusOK, "pass"
 }
