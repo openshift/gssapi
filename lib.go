@@ -1,11 +1,12 @@
 // Copyright 2013-2015 Apcera Inc. All rights reserved.
 
-// +build darwin linux
+// +build darwin linux freebsd
 
 package gssapi
 
 /*
 #cgo linux LDFLAGS: -ldl
+#cgo freebsd pkg-config: heimdal-gssapi
 
 #include <gssapi/gssapi.h>
 #include <dlfcn.h>

@@ -3,9 +3,10 @@
 package gssapi
 
 /*
-#include <gssapi.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <gssapi/gssapi.h>
 
 const size_t gss_OID_size=sizeof(gss_OID_desc);
 
