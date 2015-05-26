@@ -19,8 +19,9 @@ package gssapi
 
 /*
 #cgo darwin CFLAGS: -I/opt/local/include -I/usr/local/opt/heimdal/include
-#include <gssapi.h>
 #include <stdio.h>
+
+#include <gssapi/gssapi.h>
 
 OM_uint32
 wrap_gss_display_name(void *fp,

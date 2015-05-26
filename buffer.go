@@ -3,9 +3,10 @@
 package gssapi
 
 /*
-#include <gssapi.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <gssapi/gssapi.h>
 
 const size_t gss_buffer_size=sizeof(gss_buffer_desc);
 
