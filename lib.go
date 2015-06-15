@@ -201,6 +201,7 @@ type constants struct {
 // Lib encapsulates both the GSSAPI and the library dlopen()'d for it. The
 // handle represents the dynamically-linked gssapi library handle.
 type Lib struct {
+	LastStatus *Error
 
 	// Should contain a gssapi.Printer for each severity level to be
 	// logged, up to gssapi.MaxSeverity items

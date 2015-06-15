@@ -124,7 +124,7 @@ func (ctx *CtxId) GetMIC(qopReq QOP, messageBuffer *Buffer) (
 		messageBuffer.C_gss_buffer_t,
 		token.C_gss_buffer_t)
 
-	err = ctx.MakeError(maj, min).GoError()
+	err = ctx.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (ctx *CtxId) VerifyMIC(messageBuffer *Buffer, tokenBuffer *Buffer) (
 		tokenBuffer.C_gss_buffer_t,
 		&qop)
 
-	err = ctx.MakeError(maj, min).GoError()
+	err = ctx.stashLastStatus(maj, min)
 	if err != nil {
 		return 0, err
 	}
@@ -183,7 +183,7 @@ func (ctx *CtxId) Wrap(
 		&encrypted,
 		outputMessageBuffer.C_gss_buffer_t)
 
-	err = ctx.MakeError(maj, min).GoError()
+	err = ctx.stashLastStatus(maj, min)
 	if err != nil {
 		return false, nil, err
 	}
@@ -217,7 +217,7 @@ func (ctx *CtxId) Unwrap(
 		&encrypted,
 		&qop)
 
-	err = ctx.MakeError(maj, min).GoError()
+	err = ctx.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, false, 0, err
 	}
