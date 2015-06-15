@@ -36,7 +36,7 @@ func (lib *Lib) IndicateMechs() (*OIDSet, error) {
 		lib.Fp_gss_indicate_mechs,
 		&min,
 		&mechs.C_gss_OID_set)
-	err := lib.MakeError(maj, min).GoError()
+	err := lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}

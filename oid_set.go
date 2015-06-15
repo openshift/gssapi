@@ -89,7 +89,7 @@ func (lib *Lib) MakeOIDSet(oids ...*OID) (s *OIDSet, err error) {
 	var min C.OM_uint32
 	maj := C.wrap_gss_create_empty_oid_set(s.Fp_gss_create_empty_oid_set,
 		&min, &s.C_gss_OID_set)
-	err = s.MakeError(maj, min).GoError()
+	err = s.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (s *OIDSet) Release() (err error) {
 
 	var min C.OM_uint32
 	maj := C.wrap_gss_release_oid_set(s.Fp_gss_release_oid_set, &min, &s.C_gss_OID_set)
-	return s.MakeError(maj, min).GoError()
+	return s.stashLastStatus(maj, min)
 }
 
 // Add adds OIDs to an OIDSet.
@@ -119,7 +119,7 @@ func (s *OIDSet) Add(oids ...*OID) (err error) {
 	for _, oid := range oids {
 		maj := C.wrap_gss_add_oid_set_member(s.Fp_gss_add_oid_set_member,
 			&min, oid.C_gss_OID, &s.C_gss_OID_set)
-		err = s.MakeError(maj, min).GoError()
+		err = s.stashLastStatus(maj, min)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func (s *OIDSet) TestOIDSetMember(oid *OID) (contains bool, err error) {
 
 	maj := C.wrap_gss_test_oid_set_member(s.Fp_gss_test_oid_set_member,
 		&min, oid.C_gss_OID, s.C_gss_OID_set, &isPresent)
-	err = s.MakeError(maj, min).GoError()
+	err = s.stashLastStatus(maj, min)
 	if err != nil {
 		return false, err
 	}

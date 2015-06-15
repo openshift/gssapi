@@ -160,7 +160,8 @@ func (lib *Lib) NewCtxId() *CtxId {
 
 // InitSecContext initiates a security context. Usually invoked by the client.
 // A Context (CtxId) describes the state at one end of an authentication
-// protocol.
+// protocol. May return ErrContinueNeeded if the client is to make another
+// iteration of exchanging token with the service
 func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 	targetName *Name, mechType *OID, reqFlags uint32, timeReq time.Duration,
 	inputChanBindings ChannelBindings, inputToken *Buffer) (
@@ -219,18 +220,23 @@ func (lib *Lib) InitSecContext(initiatorCredHandle *CredId, ctxIn *CtxId,
 		&flags,
 		&timerec)
 
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, nil, nil, 0, 0, err
 	}
 
+	if MajorStatus(maj).ContinueNeeded() {
+		err = ErrContinueNeeded
+	}
+
 	return ctxOut, actualMechType, outputToken,
 		uint32(flags), time.Duration(timerec) * time.Second,
-		nil
+		err
 }
 
 // AcceptSecContext accepts an initialized security context. Usually called by
-// the server.
+// the server. May return ErrContinueNeeded if the client is to make another
+// iteration of exchanging token with the service
 func (lib *Lib) AcceptSecContext(
 	ctxIn *CtxId, acceptorCredHandle *CredId, inputToken *Buffer,
 	inputChanBindings ChannelBindings) (
@@ -284,14 +290,18 @@ func (lib *Lib) AcceptSecContext(
 		&timerec,
 		&delegatedCredHandle.C_gss_cred_id_t)
 
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		lib.Err("AcceptSecContext: ", err)
 		return nil, nil, nil, nil, 0, 0, nil, err
 	}
 
+	if MajorStatus(maj).ContinueNeeded() {
+		err = ErrContinueNeeded
+	}
+
 	return ctxOut, srcName, actualMechType, outputToken, uint32(flags),
-		time.Duration(timerec) * time.Second, delegatedCredHandle, nil
+		time.Duration(timerec) * time.Second, delegatedCredHandle, err
 }
 
 // DeleteSecContext frees a security context.
@@ -309,7 +319,7 @@ func (ctx *CtxId) DeleteSecContext() error {
 	maj := C.wrap_gss_delete_sec_context(ctx.Fp_gss_delete_sec_context,
 		&min, &ctx.C_gss_ctx_id_t, nil)
 
-	return ctx.MakeError(maj, min).GoError()
+	return ctx.stashLastStatus(maj, min)
 }
 
 // Release is an alias for DeleteSecContext.
@@ -342,7 +352,7 @@ func (ctx *CtxId) InquireContext() (
 		&li,
 		&opn)
 
-	err = ctx.MakeError(maj, min).GoError()
+	err = ctx.stashLastStatus(maj, min)
 	if err != nil {
 		ctx.Err("InquireContext: ", err)
 		return nil, nil, 0, nil, 0, false, false, err

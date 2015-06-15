@@ -132,7 +132,7 @@ func (b *Buffer) Release() error {
 	case b.alloc == allocGSSAPI:
 		var min C.OM_uint32
 		maj := C.wrap_gss_release_buffer(b.Fp_gss_release_buffer, &min, b.C_gss_buffer_t)
-		err := b.MakeError(maj, min).GoError()
+		err := b.stashLastStatus(maj, min)
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ func (b Buffer) Name(nametype *OID) (*Name, error) {
 
 	maj := C.wrap_gss_import_name(b.Fp_gss_import_name, &min,
 		b.C_gss_buffer_t, nametype.C_gss_OID, &result)
-	err := b.MakeError(maj, min).GoError()
+	err := b.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}

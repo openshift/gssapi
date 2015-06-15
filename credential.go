@@ -178,7 +178,7 @@ func (lib *Lib) AcquireCred(desiredName *Name, timeReq time.Duration,
 		&actualMechs.C_gss_OID_set,
 		&timerec)
 
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -215,7 +215,7 @@ func (lib *Lib) AddCred(inputCredHandle *CredId,
 		&initSeconds,
 		&acceptSeconds)
 
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, nil, 0, 0, err
 	}
@@ -247,7 +247,7 @@ func (lib *Lib) InquireCred(credHandle *CredId) (
 		&life,
 		(*C.gss_cred_usage_t)(&credUsage),
 		&mechanisms.C_gss_OID_set)
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, 0, 0, nil, err
 	}
@@ -280,7 +280,7 @@ func (lib *Lib) InquireCredByMech(credHandle *CredId, mechType *OID) (
 		&ilife,
 		&alife,
 		(*C.gss_cred_usage_t)(&credUsage))
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
@@ -303,7 +303,7 @@ func (c *CredId) Release() error {
 		&min,
 		&c.C_gss_cred_id_t)
 
-	return c.MakeError(maj, min).GoError()
+	return c.stashLastStatus(maj, min)
 }
 
 //TODO: Test for AddCred with existing cred

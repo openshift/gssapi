@@ -35,6 +35,7 @@ wrap_gss_display_status(void *fp,
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -100,6 +101,7 @@ const (
 )
 
 // These are GSSAPI-defined:
+// TODO: should MajorStatus be defined as C.OM_uint32?
 type MajorStatus uint32
 
 // CallingError is equivalent to C GSS_CALLING_ERROR() macro.
@@ -175,6 +177,15 @@ func (lib *Lib) MakeError(major, minor C.OM_uint32) *Error {
 		Major: MajorStatus(major),
 		Minor: minor,
 	}
+}
+
+// ErrContinueNeeded may be returned by InitSecContext or AcceptSecContext to
+// indicate that another iteration is needed
+var ErrContinueNeeded = errors.New("continue needed")
+
+func (lib *Lib) stashLastStatus(major, minor C.OM_uint32) error {
+	lib.LastStatus = lib.MakeError(major, minor)
+	return lib.LastStatus.GoError()
 }
 
 // GoError returns an untyped error interface object.

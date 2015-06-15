@@ -150,7 +150,7 @@ func (n *Name) Release() error {
 
 	var min C.OM_uint32
 	maj := C.wrap_gss_release_name(n.Fp_gss_release_name, &min, &n.C_gss_name_t)
-	err := n.MakeError(maj, min).GoError()
+	err := n.stashLastStatus(maj, min)
 	if err == nil {
 		n.C_gss_name_t = nil
 	}
@@ -164,7 +164,7 @@ func (n Name) Equal(other Name) (equal bool, err error) {
 
 	maj := C.wrap_gss_compare_name(n.Fp_gss_compare_name, &min,
 		n.C_gss_name_t, other.C_gss_name_t, &isEqual)
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		return false, err
 	}
@@ -187,7 +187,7 @@ func (n Name) Display() (name string, oid *OID, err error) {
 	maj := C.wrap_gss_display_name(n.Fp_gss_display_name, &min,
 		n.C_gss_name_t, b.C_gss_buffer_t, &oid.C_gss_OID)
 
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		oid.Release()
 		return "", nil, err
@@ -212,7 +212,7 @@ func (n Name) Canonicalize(mech_type *OID) (canonical *Name, err error) {
 	var min C.OM_uint32
 	maj := C.wrap_gss_canonicalize_name(n.Fp_gss_canonicalize_name, &min,
 		n.C_gss_name_t, mech_type.C_gss_OID, &canonical.C_gss_name_t)
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (n *Name) Duplicate() (duplicate *Name, err error) {
 	var min C.OM_uint32
 	maj := C.wrap_gss_duplicate_name(n.Fp_gss_duplicate_name, &min,
 		n.C_gss_name_t, &duplicate.C_gss_name_t)
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (n *Name) Export() (b *Buffer, err error) {
 	var min C.OM_uint32
 	maj := C.wrap_gss_export_name(n.Fp_gss_export_name, &min,
 		n.C_gss_name_t, b.C_gss_buffer_t)
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		b.Release()
 		return nil, err
@@ -268,7 +268,7 @@ func (n *Name) InquireMechs() (oids *OIDSet, err error) {
 	var min C.OM_uint32
 	maj := C.wrap_gss_inquire_mechs_for_name(n.Fp_gss_inquire_mechs_for_name, &min,
 		n.C_gss_name_t, &oidset.C_gss_OID_set)
-	err = n.MakeError(maj, min).GoError()
+	err = n.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func (lib *Lib) InquireNamesForMechs(mech *OID) (name_types *OIDSet, err error) 
 	var min C.OM_uint32
 	maj := C.wrap_gss_inquire_names_for_mech(lib.Fp_gss_inquire_mechs_for_name, &min,
 		mech.C_gss_OID, &oidset.C_gss_OID_set)
-	err = lib.MakeError(maj, min).GoError()
+	err = lib.stashLastStatus(maj, min)
 	if err != nil {
 		return nil, err
 	}
