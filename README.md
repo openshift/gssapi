@@ -12,9 +12,28 @@ service ticket, which we verify with a keytab on our authentication server.
 When a user logs into Kerberos using `kinit`, they get a Kerberos TGT. During
 Kerberos authentication, that TGT is used to retrieve a Service Ticket from the
 Domain Controller. GSSAPI lets us authenticate without having to know where or
-in what form the TGT is stored.
+in what form the TGT is stored. Because each operating system vendor might
+move that, this package wraps your system GSSAPI implementation.
 
 What do you use it for? Let us know!
+
+## Building
+
+This library is `go get` compatible.  However, it also requires header files
+to build against the GSSAPI C library on your platform.
+
+Golang needs to be able to find a gcc compiler (and one which is recent enough
+to support gccgo).  If the system compiler isn't gcc, then use `CC` in environ
+to point the Golang build tools at your gcc.  (LLVM's clang does not work and
+Golang's diagnostics if it encounters clang are to spew a lot of
+apparently-unrelated errors from trying to use it anyway).
+
+On MacOS, the default headers are too old; you can use newer headers for
+building but still use the normal system libraries.
+
+* FreeBSD: `export CC=gcc48; go install`
+* MacOS: `brew install homebrew/dupes/heimdal --without-x11`
+* Ubuntu: see `apt-get` in `test/docker/client/Dockerfile`
 
 ## Testing
 
