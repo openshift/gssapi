@@ -12,7 +12,7 @@ REALM_NAME="XAMPLE.TEST" \
 DOMAIN_NAME="xample.test" \
 USER_NAME="testuser" \
 USER_PASSWORD="P@ssword!" \
-CLIENT_IN_CONTAINER="" \
+CLIENT_IN_CONTAINER="yes" \
         ./run.sh
 
 
