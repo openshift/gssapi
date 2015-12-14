@@ -30,7 +30,7 @@ type Context struct {
 	loadonce    sync.Once
 
 	// Service credentials loaded from keytab
-	credential *gssapi.CredId `json:"-"`
+	credential *gssapi.CredId
 }
 
 var c = &Context{}

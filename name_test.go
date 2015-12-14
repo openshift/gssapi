@@ -61,7 +61,7 @@ func TestNameImportExport(t *testing.T) {
 	defer kerbOID.Release()
 
 	if !mechs.Contains(kerbOID) {
-		t.Fatalf("Expected %s to be in %s", kerbOID.DebugString, mechs.DebugString)
+		t.Fatalf("Expected %q to be in %q", kerbOID.DebugString(), mechs.DebugString())
 	}
 
 	makeNames := func(n string) (
