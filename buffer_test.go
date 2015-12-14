@@ -17,7 +17,7 @@ func TestNewBuffer(t *testing.T) {
 	for a := range []int{allocNone, allocMalloc, allocGSSAPI} {
 		b, err := l.MakeBuffer(a)
 		if err != nil {
-			t.Fatalf("alloc: %v: ", a, err)
+			t.Fatalf("alloc: %v: %s", a, err)
 		}
 		defer b.Release()
 
@@ -29,7 +29,7 @@ func TestNewBuffer(t *testing.T) {
 				a, b.Lib, l)
 		}
 		if b.C_gss_buffer_t == nil {
-			t.Fatal("alloc: %v: Got nil buffer, expected non-nil", a)
+			t.Fatalf("alloc: %v: Got nil buffer, expected non-nil", a)
 		}
 		if b.String() != "" {
 			t.Fatalf(`alloc: %v: String(): got %q, expected ""`,
