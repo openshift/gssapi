@@ -1,5 +1,7 @@
 # gssapi
 
+[![Build Status](https://travis-ci.org/apcera/gssapi.svg?branch=master)](https://travis-ci.org/apcera/gssapi)
+
 The gssapi package is a Golang wrapper around [RFC 2743](https://www.ietf.org/rfc/rfc2743.txt),
 the Generic Security Services Application Programming Interface. (GSSAPI)
 
