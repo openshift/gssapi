@@ -25,6 +25,7 @@ type ServerNegotiator interface {
 // with a client.
 type KerberizedServer struct {
 	*gssapi.Lib
+	UseProxyAuthentication bool
 }
 
 var _ ServerNegotiator = KerberizedServer{}
@@ -56,18 +57,30 @@ func (k KerberizedServer) AcquireCred(serviceName string) (*gssapi.CredId, error
 
 // Negotiate handles the SPNEGO client-server negotiation. Negotiate will likely
 // be invoked multiple times; a 200 or 400 response code are terminating
-// conditions, whereas a 401 means that the client should respond to the
+// conditions, whereas a 401 or 407 means that the client should respond to the
 // challenge that we send.
 func (k KerberizedServer) Negotiate(cred *gssapi.CredId, inHeader, outHeader http.Header) (string, int, error) {
-	negotiate, inputToken := CheckSPNEGONegotiate(k.Lib, inHeader, "Authorization")
+	var challengeHeader, authHeader string
+	var challengeStatus int
+	if k.UseProxyAuthentication {
+		challengeHeader = "Proxy-Authenticate"
+		challengeStatus = http.StatusProxyAuthRequired
+		authHeader = "Proxy-Authorization"
+	} else {
+		challengeHeader = "WWW-Authenticate"
+		challengeStatus = http.StatusUnauthorized
+		authHeader = "Authorization"
+	}
+
+	negotiate, inputToken := CheckSPNEGONegotiate(k.Lib, inHeader, authHeader)
 	defer inputToken.Release()
 
 	// Here, challenge the client to initiate the security context. The first
 	// request a client has made will often be unauthenticated, so we return a
 	// 401, which the client handles.
 	if !negotiate || inputToken.Length() == 0 {
-		AddSPNEGONegotiate(outHeader, "WWW-Authenticate", inputToken)
-		return "", http.StatusUnauthorized, errors.New("SPNEGO: unauthorized")
+		AddSPNEGONegotiate(outHeader, challengeHeader, inputToken)
+		return "", challengeStatus, errors.New("SPNEGO: unauthorized")
 	}
 
 	// FIXME: GSS_S_CONTINUED_NEEDED handling?
