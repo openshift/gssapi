@@ -1,7 +1,6 @@
 language: go
 
 go:
-  - 1.4
   - 1.5
   - 1.6
   - tip
@@ -12,14 +11,13 @@ services:
 
 before_install:
   - sudo apt-get update -q
-  - sudo apt-get install -y gcc libkrb5-dev       
+  - sudo apt-get install -y gcc libkrb5-dev
 
-install:
-  - go get golang.org/x/tools/cmd/vet
+install: true
 
-script:   
+script:
   - go vet ./...
   - go fmt ./...
-  - go test -v ./...
-  - cd test/ 
+  - go test -v -race ./...
+  - cd test/
   - ./run-heimdal.sh
