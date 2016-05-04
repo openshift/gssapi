@@ -1,6 +1,6 @@
 # gssapi
 
-[![License][License-Image]][License-Url] [![ReportCard][ReportCard-Image]][ReportCard-Url] [![Build][Build-Status-Image]][Build-Status-Url] [![Coverage][Coverage-Image]][Coverage-Url]
+[![License][License-Image]][License-Url] [![ReportCard][ReportCard-Image]][ReportCard-Url] [![Build][Build-Status-Image]][Build-Status-Url] [![Coverage][Coverage-Image]][Coverage-Url] [![GoDoc][GoDoc-Image]][GoDoc-URL]
 
 The gssapi package is a Golang wrapper around [RFC 2743](https://www.ietf.org/rfc/rfc2743.txt),
 the Generic Security Services Application Programming Interface. (GSSAPI)
@@ -79,3 +79,5 @@ We definitely cannot authenticate with:
 [Coverage-image]: https://img.shields.io/coveralls/apcera/gssapi.svg?branch=master
 [ReportCard-Url]: http://goreportcard.com/report/github.com/apcera/gssapi
 [ReportCard-Image]: http://goreportcard.com/badge/github.com/apcera/gssapi
+[Godoc-Url]: https://godoc.org/github.com/apcera/gssapi
+[Godoc-Image]: https://godoc.org/github.com/apcera/gssapi?status.svg
